@@ -110,6 +110,8 @@ object ScalaNamesUtil {
       include.exists(fitToPattern(_, qualName, strict))
   }
 
+  def isScalaOrPredef(qName: String): Boolean = qName == "scala" || qName == "scala.Predef"
+
   private def fitToPattern(pattern: String, qualName: String, strict: Boolean): Boolean = {
 
     @scala.annotation.tailrec

@@ -18,6 +18,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.ScTypeDefinitio
 import org.jetbrains.plugins.scala.lang.psi.types.api.TypeSystem
 import org.jetbrains.plugins.scala.lang.psi.types.result.TypingContext
 import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScTypeExt}
+import org.jetbrains.plugins.scala.lang.refactoring.util.ScalaNamesUtil
 import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
 import org.jetbrains.plugins.scala.project.ProjectExt
 
@@ -54,13 +55,7 @@ class ScalaVariableOfTypeMacro extends ScalaMacro {
         val variants = MacroUtil.getVariablesForScope(element).filter(r => {
           val clazz = PsiTreeUtil.getParentOfType(r.element, classOf[PsiClass])
           if (clazz == null) true
-          else {
-            clazz.qualifiedName match {
-              case "scala.Predef" => false
-              case "scala" => false
-              case _ => true
-            }
-          }
+          else !ScalaNamesUtil.isScalaOrPredef(clazz.qualifiedName)
         })
         for (variant <- variants) {
           variant.getElement match {
@@ -89,13 +84,7 @@ class ScalaVariableOfTypeMacro extends ScalaMacro {
         val variants = MacroUtil.getVariablesForScope(element).filter(r => {
           val clazz = PsiTreeUtil.getParentOfType(r.element, classOf[PsiClass])
           if (clazz == null) true
-          else {
-            clazz.qualifiedName match {
-              case "scala.Predef" => false
-              case "scala" => false
-              case _ => true
-            }
-          }
+          else !ScalaNamesUtil.isScalaOrPredef(clazz.qualifiedName)
         })
         for (variant <- variants) {
           variant.getElement match {

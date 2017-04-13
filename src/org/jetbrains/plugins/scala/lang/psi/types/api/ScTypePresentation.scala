@@ -19,7 +19,7 @@ trait ScTypePresentation extends TypeSystemOwner {
     case c: PsiClass if withPrefix => ScalaPsiUtil.nameWithPrefixIfNeeded(c)
     case e => e.name
   }, {
-    case o: ScObject if Set("scala.Predef", "scala").contains(o.qualifiedName) => ""
+    case o: ScObject if ScalaNamesUtil.isScalaOrPredef(o.qualifiedName) => ""
     case _: PsiPackage => ""
     case c: PsiClass => ScalaPsiUtil.nameWithPrefixIfNeeded(c) + "."
     case e => e.name + "."

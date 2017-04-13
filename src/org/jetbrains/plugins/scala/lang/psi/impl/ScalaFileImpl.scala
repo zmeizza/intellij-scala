@@ -363,14 +363,8 @@ class ScalaFileImpl(viewProvider: FileViewProvider, fileType: LanguageFileType =
   }
 
   @CachedInsidePsiElement(this, ScalaPsiManager.instance(getProject).modificationTracker)
-  protected def isScalaPredefinedClass: Boolean = {
-    typeDefinitions.length == 1 && Set("scala", "scala.Predef").contains(typeDefinitions.head.qualifiedName)
-  }
-
-
-  def isScalaPredefinedClassInner: Boolean = typeDefinitions.length == 1 &&
-    Set("scala", "scala.Predef").contains(typeDefinitions.head.qualifiedName)
-
+  protected def isScalaPredefinedClass: Boolean =
+    typeDefinitions.length == 1 && ScalaNamesUtil.isScalaOrPredef(typeDefinitions.head.qualifiedName)
 
   override def findReferenceAt(offset: Int): PsiReference = super.findReferenceAt(offset)
 

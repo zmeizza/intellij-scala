@@ -34,6 +34,7 @@ import org.jetbrains.plugins.scala.lang.psi.light.ScFunctionWrapper
 import org.jetbrains.plugins.scala.lang.psi.types._
 import org.jetbrains.plugins.scala.lang.psi.types.api.designator.ScThisType
 import org.jetbrains.plugins.scala.lang.psi.types.result.{TypeResult, Typeable, TypingContext}
+import org.jetbrains.plugins.scala.lang.refactoring.util.ScalaNamesUtil
 import org.jetbrains.plugins.scala.lang.resolve.processor.BaseProcessor
 import org.jetbrains.plugins.scala.macroAnnotations.{Cached, CachedInsidePsiElement, ModCount}
 
@@ -168,11 +169,10 @@ trait ScTemplateDefinition extends ScNamedElement with PsiClass with Typeable {
 
   protected def syntheticMembersImpl: Seq[ScMember] = Seq.empty
 
-  def selfTypeElement: Option[ScSelfTypeElement] = {
-    val qual = qualifiedName
-    if (qual != null && (qual == "scala.Predef" || qual == "scala")) return None
-    extendsBlock.selfTypeElement
-  }
+  def selfTypeElement: Option[ScSelfTypeElement] =
+    if (ScalaNamesUtil.isScalaOrPredef(qualifiedName)) None
+    else extendsBlock.selfTypeElement
+
 
   def selfType: Option[ScType] = extendsBlock.selfType
 
