@@ -39,10 +39,11 @@ trait LocationLineManager {
     customizedLocationsCache.getOrElse(location, ScalaPositionManager.checkedLineNumber(location))
   }
 
-  def shouldSkip(location: Location): Boolean = {
+  def shouldSkip(location: Location, skipSynthetic: Boolean = true): Boolean = {
     if (!DebuggerUtil.isScala(location.declaringType(), default = false)) return false
 
-    val synth = DebuggerSettings.getInstance().SKIP_SYNTHETIC_METHODS && syntheticProvider.isSynthetic(location.method())
+    val synthSetting = DebuggerSettings.getInstance().SKIP_SYNTHETIC_METHODS
+    val synth = skipSynthetic && synthSetting && syntheticProvider.isSynthetic(location.method())
     synth || exactLineNumber(location) < 0
   }
 

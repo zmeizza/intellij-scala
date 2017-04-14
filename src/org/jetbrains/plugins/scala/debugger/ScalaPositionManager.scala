@@ -58,7 +58,8 @@ class ScalaPositionManager(val debugProcess: DebugProcess) extends PositionManag
 
   @Nullable
   def getSourcePosition(@Nullable location: Location): SourcePosition = {
-    if (shouldSkip(location)) return null
+    if (shouldSkip(location, skipSynthetic = false))
+      return null
 
     val position =
       for {
@@ -73,7 +74,8 @@ class ScalaPositionManager(val debugProcess: DebugProcess) extends PositionManag
       }
     position match {
       case Some(p) => p
-      case None => throw NoDataException.INSTANCE
+      case None =>
+        throw NoDataException.INSTANCE
     }
   }
 
