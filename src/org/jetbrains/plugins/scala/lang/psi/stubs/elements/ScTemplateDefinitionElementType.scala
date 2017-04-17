@@ -159,8 +159,8 @@ abstract class ScTemplateDefinitionElementType[TypeDef <: ScTemplateDefinition](
         val index = packageName.lastIndexOf('.')
         if (index < 0) packageName else packageName.substring(index + 1, packageName.length)
       }
-      sink.occurrence[PsiClass, java.lang.Integer](ScalaIndexKeys.PACKAGE_OBJECT_KEY, packageName.hashCode)
-      sink.occurrence[PsiClass, String](ScalaIndexKeys.PACKAGE_OBJECT_SHORT_NAME_KEY, shortName)
+      sink.occurrence[ScObject, java.lang.Integer](ScalaIndexKeys.PACKAGE_OBJECT_KEY, packageName.hashCode)
+      sink.occurrence[ScObject, String](ScalaIndexKeys.PACKAGE_OBJECT_SHORT_NAME_KEY, shortName)
     }
   }
 }

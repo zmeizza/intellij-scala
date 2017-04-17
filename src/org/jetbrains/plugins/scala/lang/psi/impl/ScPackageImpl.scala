@@ -94,7 +94,7 @@ class ScPackageImpl private (val pack: PsiPackage) extends PsiPackageImpl(pack.g
     true
   }
 
-  def findPackageObject(scope: GlobalSearchScope): Option[ScTypeDefinition] = {
+  def findPackageObject(scope: GlobalSearchScope): Option[ScObject] = {
     val manager = ScalaShortNamesCacheManager.getInstance(getProject)
 
     var tuple = pack.getUserData(CachesUtil.PACKAGE_OBJECT_KEY)

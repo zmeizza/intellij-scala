@@ -7,7 +7,7 @@ import org.jetbrains.plugins.scala.lang.psi.impl.toplevel.synthetic.{ScSynthetic
 import org.jetbrains.plugins.scala.lang.psi.types.{NamedType, ScType, ScTypeExt, ScUndefinedSubstitutor}
 
 abstract class StdType(val name: String, val tSuper: Option[StdType]) extends ValueType with NamedType {
-  protected val fullName = s"scala.$name"
+  val fullName = s"scala.$name"
 
   override def visitType(visitor: TypeVisitor): Unit = visitor.visitStdType(this)
 

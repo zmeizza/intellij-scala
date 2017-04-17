@@ -59,8 +59,8 @@ class ScalaPsiManager(val project: Project) {
   private val clearCacheOnLowMemory = new mutable.ArrayBuffer[util.Map[_ <: Any, _ <: Any]]()
   private val clearCacheOnOutOfBlockChange = new mutable.ArrayBuffer[util.Map[_ <: Any, _ <: Any]]()
 
-  val collectImplicitObjectsCache: ConcurrentMap[(ScType, GlobalSearchScope), Seq[ScType]] =
-    ContainerUtil.createConcurrentWeakMap[(ScType, GlobalSearchScope), Seq[ScType]]()
+  val collectImplicitObjectsCache: ConcurrentMap[(ScType, GlobalSearchScope), Set[ScType]] =
+    ContainerUtil.createConcurrentWeakMap[(ScType, GlobalSearchScope), Set[ScType]]()
 
   val implicitCollectorCache: ImplicitCollectorCache = new ImplicitCollectorCache(project)
 
@@ -261,6 +261,7 @@ class ScalaPsiManager(val project: Project) {
     ScParameterizedType.cache.clear()
     collectImplicitObjectsCache.clear()
     implicitCollectorCache.clear()
+    ScalaPsiUtil.implicitObjectCache.clear()
   }
 
   private def clearOnChange(): Unit = {

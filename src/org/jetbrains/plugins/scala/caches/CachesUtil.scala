@@ -15,7 +15,7 @@ import org.jetbrains.plugins.scala.debugger.evaluation.ScalaCodeFragment
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaFile
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScModificationTrackerOwner
 import org.jetbrains.plugins.scala.lang.psi.api.statements.ScFunction
-import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.ScTypeDefinition
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScObject, ScTypeDefinition}
 import org.jetbrains.plugins.scala.lang.psi.impl.ScPackageImpl.{DoNotProcessPackageObjectException, isPackageObjectProcessing}
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiManager
 import org.jetbrains.plugins.scala.lang.psi.types.ScType
@@ -72,7 +72,7 @@ object CachesUtil {
   val IMPLICIT_FUNCTION: Key[PsiNamedElement] = Key.create("implicit.function")
   val IMPLICIT_RESOLUTION: Key[PsiClass] = Key.create("implicit.resolution")
   val NAMED_PARAM_KEY: Key[java.lang.Boolean] = Key.create("named.key")
-  val PACKAGE_OBJECT_KEY: Key[(ScTypeDefinition, java.lang.Long)] = Key.create("package.object.key")
+  val PACKAGE_OBJECT_KEY: Key[(ScObject, java.lang.Long)] = Key.create("package.object.key")
   val PROJECT_HAS_DOTTY_KEY: Key[java.lang.Boolean] = Key.create("project.has.dotty")
 
   def getDependentItem(element: PsiElement)(dep_item: Object = enclosingModificationOwner(element)): Object = {

@@ -10,7 +10,7 @@ import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.finder.ScalaSourceFilterScope
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaFile
 import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFunction, ScValue, ScVariable}
-import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.ScTypeDefinition
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScObject, ScTypeDefinition}
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiManager
 import org.jetbrains.plugins.scala.lang.psi.light.PsiMethodWrapper
 import org.jetbrains.plugins.scala.lang.psi.stubs.index.ScalaIndexKeys
@@ -191,13 +191,13 @@ class ScalaShortNamesCacheManager(project: Project) extends ProjectComponent {
     StubIndex.getElements(ScalaIndexKeys.SHORT_NAME_KEY, name, project, scope, classOf[PsiClass]).toSeq
   }
 
-  def getPackageObjectByName(fqn: String, scope: GlobalSearchScope): ScTypeDefinition = {
+  def getPackageObjectByName(fqn: String, scope: GlobalSearchScope): ScObject = {
     if (DumbService.getInstance(project).isDumb) return null
 
     val cleanName = ScalaNamesUtil.cleanFqn(fqn)
     val classes =
-      StubIndex.getElements[java.lang.Integer, PsiClass](ScalaIndexKeys.PACKAGE_OBJECT_KEY,
-        cleanName.hashCode, project, scope, classOf[PsiClass])
+      StubIndex.getElements[java.lang.Integer, ScObject](ScalaIndexKeys.PACKAGE_OBJECT_KEY,
+        cleanName.hashCode, project, scope, classOf[ScObject])
     val classesIterator = classes.iterator()
     while (classesIterator.hasNext) {
       val psiClass = classesIterator.next()
@@ -214,7 +214,7 @@ class ScalaShortNamesCacheManager(project: Project) extends ProjectComponent {
         }
         if (ScalaNamesUtil.equivalentFqn(fqn, qualifiedName)) {
           psiClass match {
-            case typeDefinition: ScTypeDefinition =>
+            case typeDefinition: ScObject =>
               return typeDefinition
             case _ =>
           }

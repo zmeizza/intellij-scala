@@ -2,6 +2,8 @@ package org.jetbrains.plugins.scala
 package lang
 package psi
 
+import java.util.concurrent.ConcurrentMap
+
 import com.intellij.codeInsight.AnnotationUtil
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.diagnostic.Logger
@@ -18,6 +20,7 @@ import com.intellij.psi.search.{GlobalSearchScope, SearchScope}
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.tree.TokenSet
 import com.intellij.psi.util._
+import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.plugins.scala.editor.typedHandler.ScalaTypedHandler
 import org.jetbrains.plugins.scala.extensions.{PsiElementExt, PsiNamedElementExt, _}
 import org.jetbrains.plugins.scala.lang.formatting.settings.ScalaCodeStyleSettings
@@ -505,8 +508,156 @@ object ScalaPsiUtil {
     else null
   }
 
-  def collectImplicitObjects(_tp: ScType)
-                            (implicit elementScope: ElementScope): Seq[ScType] = {
+  private def packageObjects(c: PsiClass)
+                            (implicit elementScope: ElementScope): Set[ScObject] = {
+
+    @tailrec
+    def inner(packOpt: Option[ScPackageLike],
+              collected: Set[ScObject] = Set.empty)
+             (implicit elementScope: ElementScope): Set[ScObject] = {
+      packOpt match {
+        case Some(pack) =>
+          val forThisPackage = pack.findPackageObject(elementScope.scope).toSet
+          inner(pack.parentScalaPackage, forThisPackage ++ collected)
+        case _ => collected
+      }
+    }
+
+    val packageLike = ScalaPsiUtil.contextOfType(c, strict = false, classOf[ScPackageLike])
+    inner(Option(packageLike))
+  }
+
+
+  def toObjects(clazzAndType: (PsiClass, ScType))(implicit elementScope: ElementScope): Set[ScType] = {
+    val (clazz, tp) = clazzAndType
+    val clazzOrCompanion = clazz match {
+      case _: ScObject => Set(tp)
+      case _ =>
+        getCompanionModule(clazz) match {
+          case Some(obj: ScObject) =>
+            tp match {
+              case ScProjectionType(proj, _, s) =>
+                Set(ScProjectionType(proj, obj, s))
+              case ParameterizedType(ScProjectionType(proj, _, s), _) =>
+                Set(ScProjectionType(proj, obj, s))
+              case _ =>
+                Set(ScDesignatorType(obj))
+            }
+          case _ => Set.empty
+        }
+    }
+    val packageObjs =
+      if (clazz.containingClass != null) Set.empty
+      else packageObjects(clazz).map(ScDesignatorType(_))
+    clazzOrCompanion ++ packageObjs
+  }
+
+  val implicitObjectCache: ConcurrentMap[GlobalSearchScope, ConcurrentMap[ScType, Set[ScType]]] =
+    ContainerUtil.newConcurrentMap()
+
+  def collectImplicitObjects(tp: ScType)(implicit elementScope: ElementScope): Set[ScType] = {
+    val map = implicitObjectCache.atomicGetOrElseUpdate(elementScope.scope, ContainerUtil.createConcurrentWeakMap())
+    val cached = map.get(tp)
+    if (cached != null) return cached
+
+    val parts = collectParts(tp)
+    val result = parts.flatMap(toObjects)
+
+    map.atomicGetOrElseUpdate(tp, result)
+  }
+
+  def collectParts(tp: ScType)
+                  (implicit elementScope: ElementScope): Set[(PsiClass, ScType)] = {
+    implicit val typeSystem = elementScope.typeSystem
+    val project = elementScope.project
+
+    var visited: Set[ScType] = Set[ScType]()
+    var parts: Set[(PsiClass, ScType)] = Set[(PsiClass, ScType)]()
+    val queue: mutable.Queue[ScType] = mutable.Queue[ScType](tp)
+
+    def collectPartsInner(tp: ScType) {
+      ProgressManager.checkCanceled()
+
+      if (visited.contains(tp)) return
+      visited += tp
+
+      tp.isAliasType match {
+        case Some(AliasType(_, _, Success(upper, _))) =>
+          queue.enqueue(upper)
+        case _ =>
+      }
+
+      tp match {
+        case Unit =>
+        case v: ValType =>
+          parts ++= elementScope.getCachedClass(v.fullName).map(c => (c, ScDesignatorType(c)))
+        case ScDesignatorType(v: ScBindingPattern) => queue.enqueue(v.getType(TypingContext.empty).getOrAny)
+        case ScDesignatorType(v: ScFieldId) => queue.enqueue(v.getType(TypingContext.empty).getOrAny)
+        case ScDesignatorType(p: ScParameter) => queue.enqueue(p.getType(TypingContext.empty).getOrAny)
+        case ScCompoundType(comps, _, _) => queue.enqueue(comps: _*)
+        case ParameterizedType(a: ScAbstractType, args) =>
+          queue.enqueue(a)
+          queue.enqueue(args: _*)
+        case p@ParameterizedType(des, args) =>
+          p.extractClassType(project) match {
+            case Some((clazz, subst)) =>
+              parts += ((clazz, des))
+              queue.enqueue(des)
+              queue.enqueue(args: _*)
+              queue.enqueue(superTypes(clazz, subst): _*)
+            case _ =>
+              queue.enqueue(des)
+              queue.enqueue(args: _*)
+          }
+        case JavaArrayType(arg) =>
+          queue.enqueue(arg)
+        case proj@ScProjectionType(projected, _, _) =>
+          queue.enqueue(projected)
+          proj.actualElement match {
+            case v: ScBindingPattern => queue.enqueue(v.getType(TypingContext.empty).map(proj.actualSubst.subst).getOrAny)
+            case v: ScFieldId => queue.enqueue(v.getType(TypingContext.empty).map(proj.actualSubst.subst).getOrAny)
+            case v: ScParameter => queue.enqueue(v.getType(TypingContext.empty).map(proj.actualSubst.subst).getOrAny)
+            case _ =>
+          }
+          tp.extractClassType(project) match {
+            case Some((clazz, subst)) =>
+              parts += ((clazz, tp))
+              queue.enqueue(superTypes(clazz, subst): _*)
+            case _ =>
+          }
+        case ScAbstractType(_, _, upper) =>
+          queue.enqueue(upper)
+        case ScExistentialType(quant, _) =>
+          queue.enqueue(quant)
+        case TypeParameterType(_, _, upper, _) =>
+          queue.enqueue(upper.v)
+        case _ =>
+          tp.extractClassType(project) match {
+            case Some((clazz, subst)) =>
+              parts += ((clazz, tp))
+              queue.enqueue(superTypes(clazz, subst): _*)
+            case _ =>
+          }
+      }
+    }
+
+    while (queue.nonEmpty) {
+      collectPartsInner(queue.dequeue())
+    }
+    parts
+  }
+
+  def superTypes(clazz: PsiClass, subst: ScSubstitutor)(implicit typeSystem: TypeSystem): Seq[ScType] = {
+    clazz match {
+      case td: ScTemplateDefinition =>
+        td.superTypes.map(subst.subst)
+      case clazz: PsiClass =>
+        clazz.getSuperTypes.map(t => subst.subst(t.toScType()))
+    }
+  }
+
+  def collectImplicitObjectsOld(_tp: ScType)
+                            (implicit elementScope: ElementScope): Set[ScType] = {
     val ElementScope(project, scope) = elementScope
     implicit val typeSystem = elementScope.typeSystem
 
@@ -679,8 +830,9 @@ object ScalaPsiUtil {
 
       collectObjects(part)
     }
-    cachedResult = res.values.flatten.toSeq
+    cachedResult = res.values.flatten.toSet
     implicitObjectsCache.put(cacheKey, cachedResult)
+
     cachedResult
   }
 
