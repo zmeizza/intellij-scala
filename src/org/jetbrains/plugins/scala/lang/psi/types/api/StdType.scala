@@ -16,7 +16,10 @@ sealed class StdType(val name: String, val tSuper: Option[StdType])
 
   val fullName = s"scala.$name"
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor.visitStdType(this)
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor match {
+    case v: StdTypeVisitor[T] => v.visitStdType(this)
+    case _ => visitor.notSupported(this)
+  }
 
   /**
     * Return wrapped to option appropriate synthetic class.
@@ -133,4 +136,8 @@ object StdTypes {
       fromContainer
     }
   }
+}
+
+trait StdTypeVisitor[T] extends TypeVisitor[T] {
+  def visitStdType(tp: StdType): T = default(tp)
 }

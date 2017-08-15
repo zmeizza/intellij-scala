@@ -60,5 +60,12 @@ case class ScThisType(element: ScTemplateDefinition) extends DesignatorOwner {
     }
   }
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor.visitThisType(this)
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor match {
+    case v: ThisTypeVisitor[T] => v.visitThisType(this)
+    case _ => visitor.notSupported(this)
+  }
+}
+
+trait ThisTypeVisitor[T] extends TypeVisitor[T] {
+  def visitThisType(tp: ScThisType): T = default(tp)
 }

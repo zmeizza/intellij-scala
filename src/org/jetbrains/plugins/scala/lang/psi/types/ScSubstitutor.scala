@@ -343,7 +343,7 @@ class ScSubstitutor private (val tvMap: Map[(String, Long), ScType],
           wildcards.map(ex => substInternal(ex).asInstanceOf[ScExistentialArgument]))
       }
 
-      override def visitParameterizedType(pt: ParameterizedType): Unit = {
+      override def visitParameterizedType(pt: ScParameterizedType): Unit = {
         val typeArgs = pt.typeArguments
         result = pt.designator match {
           case tpt: TypeParameterType =>

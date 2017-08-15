@@ -93,7 +93,10 @@ case class ScDesignatorType(element: PsiNamedElement, isStatic: Boolean = false)
     }
   }
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor.visitDesignatorType(this)
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor match {
+    case v: DesignatorTypeVisitor[T] => v.visitDesignatorType(this)
+    case _ => visitor.notSupported(this)
+  }
 }
 
 object ScDesignatorType {
@@ -101,4 +104,8 @@ object ScDesignatorType {
     case designatorType: ScDesignatorType => Some(designatorType.element)
     case _ => None
   }
+}
+
+trait DesignatorTypeVisitor[T] extends TypeVisitor[T] {
+  def visitDesignatorType(tp: ScDesignatorType): T = default(tp)
 }

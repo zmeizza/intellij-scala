@@ -13,7 +13,10 @@ case class UndefinedType(parameterType: TypeParameterType, var level: Int = 0) e
 
   override implicit def projectContext: ProjectContext = parameterType.projectContext
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor.visitUndefinedType(this)
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor match {
+    case v: UndefinedTypeVisitor[T] => v.visitUndefinedType(this)
+    case _ => visitor.notSupported(this)
+  }
 
   def inferValueType: TypeParameterType = parameterType
 
@@ -32,4 +35,8 @@ case class UndefinedType(parameterType: TypeParameterType, var level: Int = 0) e
 
     (!falseUndef, result)
   }
+}
+
+trait UndefinedTypeVisitor[T] extends TypeVisitor[T] {
+  def visitUndefinedType(tp: UndefinedType): T = default(tp)
 }

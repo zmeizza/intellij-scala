@@ -1,16 +1,17 @@
 package org.jetbrains.plugins.dotty.lang.psi.types
 
-import org.jetbrains.plugins.scala.lang.psi.types.api.TypeVisitor
+import org.jetbrains.plugins.scala.lang.psi.types.{ScType, api}
 
 /**
   * @author adkozlov
   */
-trait DottyTypeVisitor extends TypeVisitor {
-  def visitNoType(noType: DottyNoType) {}
+trait GenDottyTypeVisitor[T] extends api.CommonTypeVisitor[T]
+  with DottyOrTypeVisitor[T]
+  with DottyAndTypeVisitor[T]
+  with DottyConstantTypeVisitor[T]
+  with DottyNoTypeVisitor[T]
+  with DottyRefinedTypeVisitor[T]
 
-  def visitAndType(andType: DottyAndType) {}
-
-  def visitOrType(orType: DottyOrType) {}
-
-  def visitRefinedType(refinedType: DottyRefinedType) {}
+trait DottyTypeVisitor extends GenDottyTypeVisitor[Unit] {
+  override def default(tp: ScType): Unit = {}
 }

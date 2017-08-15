@@ -3,7 +3,7 @@ package org.jetbrains.plugins.dotty.lang.psi.types
 import org.jetbrains.plugins.scala.lang.psi.api.base.types.ScRefinement
 import org.jetbrains.plugins.scala.lang.psi.api.statements._
 import org.jetbrains.plugins.scala.lang.psi.types.api.{ParameterizedType, TypeVisitor}
-import org.jetbrains.plugins.scala.lang.psi.types.{ScSubstitutor, ScType, Signature, TypeAliasSignature}
+import org.jetbrains.plugins.scala.lang.psi.types.{ScSubstitutor, ScType, Signature, TypeAliasSignature, api}
 
 /**
   * @author adkozlov
@@ -16,9 +16,9 @@ case class DottyRefinedType(designator: ScType,
 
   override protected def substitutorInner = ScSubstitutor.empty
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor match {
-    case dottyVisitor: DottyTypeVisitor => dottyVisitor.visitRefinedType(this)
-    case _ =>
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor match {
+    case v: DottyRefinedTypeVisitor[T] => v.visitRefinedType(this)
+    case _ => visitor.notSupported(this)
   }
 }
 
@@ -36,4 +36,8 @@ object DottyRefinedType {
 
     DottyRefinedType(designator, signatures, typeAliasSignatures)()
   }
+}
+
+trait DottyRefinedTypeVisitor[T] extends api.TypeVisitor[T] {
+  def visitRefinedType(tp: DottyRefinedType): T = default(tp)
 }

@@ -53,7 +53,10 @@ sealed trait TypeParameterType extends ValueType with NamedType {
       case _ => false
     }, substitutor)
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor.visitTypeParameterType(this)
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor match {
+    case v: TypeParameterTypeVisitor[T] => v.visitTypeParameterType(this)
+    case _ => visitor.notSupported(this)
+  }
 }
 
 object TypeParameterType {
@@ -97,4 +100,8 @@ object TypeParameterType {
 
     override val upperType: Suspension = Suspension(uType)
   }
+}
+
+trait TypeParameterTypeVisitor[T] extends TypeVisitor[T] {
+  def visitTypeParameterType(tp: TypeParameterType): T = default(tp)
 }

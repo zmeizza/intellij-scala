@@ -87,8 +87,12 @@ case class ScAbstractType(parameterType: TypeParameterType, lower: ScType, upper
     }
   }
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor match {
-    case scalaVisitor: ScalaTypeVisitor => scalaVisitor.visitAbstractType(this)
-    case _ =>
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor match {
+    case v: AbstractTypeVisitor[T] => v.visitAbstractType(this)
+    case _ => visitor.notSupported(this)
   }
+}
+
+trait AbstractTypeVisitor[T] extends TypeVisitor[T] {
+  def visitAbstractType(tp: ScAbstractType): T = default(tp)
 }

@@ -310,7 +310,10 @@ class ScProjectionType private(val projected: ScType,
     case _ => false
   }
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor.visitProjectionType(this)
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor match {
+    case v: ProjectionTypeVisitor[T] => v.visitProjectionType(this)
+    case _ => visitor.notSupported(this)
+  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[ScProjectionType]
 
@@ -372,4 +375,8 @@ object ScProjectionType {
   object withActual {
     def unapply(proj: ScProjectionType): Option[(PsiNamedElement, ScSubstitutor)] = Some(proj.actual)
   }
+}
+
+trait ProjectionTypeVisitor[T] extends TypeVisitor[T] {
+  def visitProjectionType(tp: ScProjectionType): T = default(tp)
 }

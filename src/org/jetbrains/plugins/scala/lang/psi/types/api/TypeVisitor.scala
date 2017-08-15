@@ -1,27 +1,19 @@
 package org.jetbrains.plugins.scala.lang.psi.types.api
 
-import org.jetbrains.plugins.scala.lang.psi.types.api.designator.{ScDesignatorType, ScProjectionType, ScThisType}
-import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.ScMethodType
+import org.jetbrains.plugins.scala.lang.psi.types.ScType
 
 /**
   * @author adkozlov
+  * @author Nikolay.Tropin
   */
-trait TypeVisitor {
-  def visitStdType(`type`: StdType) {}
+trait TypeVisitor[T] {
 
-  def visitJavaArrayType(`type`: JavaArrayType) {}
+  def default(tp: ScType): T
 
-  def visitMethodType(`type`: ScMethodType) {}
+  def notSupported(tp: ScType): T = {
+    val visitorClass = this.getClass.getSimpleName
+    val tpClass = this.getClass.getSimpleName
 
-  def visitUndefinedType(`type`: UndefinedType) {}
-
-  def visitTypeParameterType(`type`: TypeParameterType) {}
-
-  def visitParameterizedType(`type`: ParameterizedType) {}
-
-  def visitProjectionType(p: ScProjectionType) {}
-
-  def visitThisType(t: ScThisType) {}
-
-  def visitDesignatorType(d: ScDesignatorType) {}
+    throw new IllegalArgumentException(s"Visitor of type $visitorClass doesn't support $tpClass")
+  }
 }

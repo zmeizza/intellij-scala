@@ -45,7 +45,14 @@ case class JavaArrayType(argument: ScType) extends ValueType {
       case _ => (false, substitutor)
     }
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor.visitJavaArrayType(this)
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor match {
+    case v: JavaArrayTypeVisitor[T] => v.visitJavaArrayType(this)
+    case _ => visitor.notSupported(this)
+  }
 
   override def typeDepth: Int = argument.typeDepth
+}
+
+trait JavaArrayTypeVisitor[T] extends TypeVisitor[T] {
+  def visitJavaArrayType(tp: JavaArrayType): T = default(tp)
 }
