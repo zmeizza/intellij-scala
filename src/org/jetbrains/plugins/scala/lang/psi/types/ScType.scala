@@ -91,7 +91,7 @@ trait ScType extends ProjectContextOwner {
     }
   }
 
-  def visitType(visitor: TypeVisitor)
+  def visitType[T](visitor: TypeVisitor[T]): T
 
   def typeDepth: Int = 1
 

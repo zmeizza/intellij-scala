@@ -45,7 +45,7 @@ case class JavaArrayType(argument: ScType) extends ValueType {
       case _ => (false, substitutor)
     }
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor.visitJavaArrayType(this)
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor.visitJavaArrayType(this)
 
   override def typeDepth: Int = argument.typeDepth
 }

@@ -13,7 +13,7 @@ case class UndefinedType(parameterType: TypeParameterType, var level: Int = 0) e
 
   override implicit def projectContext: ProjectContext = parameterType.projectContext
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor.visitUndefinedType(this)
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor.visitUndefinedType(this)
 
   def inferValueType: TypeParameterType = parameterType
 

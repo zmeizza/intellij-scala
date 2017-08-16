@@ -61,4 +61,24 @@ package object api {
   def Float(implicit pc: ProjectContext) = StdTypes.instance.Float
 
   def Double(implicit pc: ProjectContext) = StdTypes.instance.Double
+
+  trait AndType extends ScType {
+    def visitType[T](visitor: TypeVisitor[T]): T = visitor.visitAndType(this)
+  }
+
+  trait OrType extends ScType {
+    def visitType[T](visitor: TypeVisitor[T]): T = visitor.visitOrType(this)
+  }
+
+  trait ConstantType extends ScType {
+    def visitType[T](visitor: TypeVisitor[T]): T = visitor.visitConstantType(this)
+  }
+
+  trait NoType extends ScType {
+    def visitType[T](visitor: TypeVisitor[T]): T = visitor.visitNoType(this)
+  }
+
+  trait RefinedType extends ScType {
+    def visitType[T](visitor: TypeVisitor[T]): T = visitor.visitRefinedType(this)
+  }
 }

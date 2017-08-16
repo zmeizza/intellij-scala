@@ -53,7 +53,7 @@ sealed trait TypeParameterType extends ValueType with NamedType {
       case _ => false
     }, substitutor)
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor.visitTypeParameterType(this)
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor.visitTypeParameterType(this)
 }
 
 object TypeParameterType {

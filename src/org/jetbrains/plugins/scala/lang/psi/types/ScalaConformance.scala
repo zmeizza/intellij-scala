@@ -205,7 +205,7 @@ trait ScalaConformance extends api.Conformance {
     }
 
     trait ParameterizedAbstractVisitor extends ScalaTypeVisitor {
-      override def visitParameterizedType(p: ParameterizedType) {
+      override def visitParameterizedType(p: ScParameterizedType) {
         p.designator match {
           case ScAbstractType(parameterType, lowerBound, _) =>
             val subst = ScSubstitutor(parameterType.arguments.zip(p.typeArguments).map {
@@ -243,7 +243,7 @@ trait ScalaConformance extends api.Conformance {
     }
 
     trait ParameterizedExistentialArgumentVisitor extends ScalaTypeVisitor {
-      override def visitParameterizedType(p: ParameterizedType) {
+      override def visitParameterizedType(p: ScParameterizedType) {
         p.designator match {
           case s: ScExistentialArgument =>
             s.upper match {
@@ -338,7 +338,7 @@ trait ScalaConformance extends api.Conformance {
     }
 
     trait ParameterizedAliasVisitor extends ScalaTypeVisitor {
-      override def visitParameterizedType(p: ParameterizedType) {
+      override def visitParameterizedType(p: ScParameterizedType) {
         p.isAliasType match {
           case Some(AliasType(_, _, upper)) =>
             if (upper.isEmpty) {
@@ -847,7 +847,7 @@ trait ScalaConformance extends api.Conformance {
       if (result != null) return
     }
 
-    override def visitParameterizedType(p: ParameterizedType) {
+    override def visitParameterizedType(p: ScParameterizedType) {
       var rightVisitor: ScalaTypeVisitor =
         new ValDesignatorSimplification with UndefinedSubstVisitor with AbstractVisitor {}
       r.visitType(rightVisitor)

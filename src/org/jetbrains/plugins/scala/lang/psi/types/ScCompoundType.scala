@@ -37,10 +37,7 @@ case class ScCompoundType(components: Seq[ScType],
   }
 
 
-  override def visitType(visitor: TypeVisitor): Unit = visitor match {
-    case scalaVisitor: ScalaTypeVisitor => scalaVisitor.visitCompoundType(this)
-    case _ =>
-  }
+  override def visitType[T](visitor: TypeVisitor[T]): T = visitor.visitCompoundType(this)
 
   override def typeDepth: Int = {
     val depths = signatureMap.map {
