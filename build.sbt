@@ -35,7 +35,7 @@ lazy val scalaCommunityRoot: sbt.Project =
 
 lazy val scalaCommunity: sbt.Project =
   newProject("scalaCommunity", file("scala/scala-impl"))
-    .dependsOn(jpsShared, decompiler % "test->test;compile->compile", runners % "test->test;compile->compile", macroAnnotations)
+    .dependsOn(jpsShared, decompiler % "test->test;compile->compile", runners % "test->test;compile->compile", macroAnnotations, hocon % "compile->test")
   .enablePlugins(SbtIdeaPlugin, BuildInfoPlugin)
   .settings(commonTestSettings(packagedPluginDir):_*)
   .settings(
@@ -121,6 +121,11 @@ lazy val macroAnnotations =
     addCompilerPlugin(Dependencies.macroParadise),
     libraryDependencies ++= Seq(Dependencies.scalaReflect, Dependencies.scalaCompiler)
   ): _*)
+
+lazy val hocon =
+  newProject("hocon")
+    .enablePlugins(SbtIdeaPlugin)
+    .settings(ideaInternalPlugins := Seq("properties"))
 
 // Utility projects
 
@@ -250,8 +255,8 @@ lazy val pluginPackagerCommunity =
   newProject("pluginPackagerCommunity")
   .settings(
     artifactPath := packagedPluginDir.value,
-    dependencyClasspath :=
-      dependencyClasspath.in(scalaCommunity, Compile).value ++
+    dependencyClasspath := dependencyClasspath.in(scalaCommunity, Compile).value ++
+      dependencyClasspath.in(hocon, Compile).value ++
       dependencyClasspath.in(jpsPlugin, Compile).value ++
       dependencyClasspath.in(runners, Compile).value ++
       dependencyClasspath.in(sbtRuntimeDependencies, Compile).value
@@ -301,6 +306,8 @@ lazy val pluginPackagerCommunity =
           "lib/jpsShared.jar"),
         Artifact(pack.in(nailgunRunners, Compile).value,
           "lib/scala-nailgun-runner.jar"),
+        Artifact(pack.in(hocon, Compile).value,
+          "lib/hocon.jar"),
         MergedArtifact(Seq(
             pack.in(runners, Compile).value,
             pack.in(scalaRunner, Compile).value),
