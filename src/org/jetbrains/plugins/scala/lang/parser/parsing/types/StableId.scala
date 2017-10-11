@@ -95,11 +95,14 @@ object StableId extends ParserNode {
     if (builder.getTokenType != tLSQBRACKET) return
     builder.advanceLexer()
     builder.disableNewlines
+    val qualMarker = builder.mark()
     if (builder.getTokenType != tIDENTIFIER) {
       builder.error(ErrMsg("identifier.expected"))
+      qualMarker.drop()
     }
     else {
       builder.advanceLexer()
+      qualMarker.done(REFERENCE)
     }
 
     if (builder.getTokenType != tRSQBRACKET) {

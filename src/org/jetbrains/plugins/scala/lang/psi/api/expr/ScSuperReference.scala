@@ -21,6 +21,8 @@ trait ScSuperReference extends ScExpression with ScPathElement {
 
   //type of M for super[M]
   def staticSuper : Option[ScType]
+
+  def staticSuperPsi: Option[ScStableCodeReferenceElement]
   
   //name of super type as written in code
   def staticSuperName: String
@@ -28,5 +30,6 @@ trait ScSuperReference extends ScExpression with ScPathElement {
   //for A.super or simply super
   def drvTemplate : Option[ScTemplateDefinition]
 
-  def reference: Option[ScStableCodeReferenceElement] = findChild(classOf[ScStableCodeReferenceElement])
+  def reference: Option[ScStableCodeReferenceElement] =
+    findChild(classOf[ScStableCodeReferenceElement]).filterNot(ScalaPsiUtil.isInSqBrackets)
 }

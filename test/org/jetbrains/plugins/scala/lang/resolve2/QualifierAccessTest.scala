@@ -21,4 +21,5 @@ class QualifierAccessTest extends ResolveTestBase {
   def testQualifiedAccissibility() {doTest()}
   def testSCL3857() {doTest()}
   def testSelfQualifier() {doTest()}
+  def testSuperSQBracketQualified() {doTest()}
 }

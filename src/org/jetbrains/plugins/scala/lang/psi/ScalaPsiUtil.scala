@@ -112,11 +112,11 @@ object ScalaPsiUtil {
   }
 
   @tailrec
-  def drvTemplate(elem: PsiElement): Option[ScTemplateDefinition] = {
-    val template = PsiTreeUtil.getContextOfType(elem, true, classOf[ScTemplateDefinition])
+  def drvTemplate(elem: PsiElement, strict: Boolean = false): Option[ScTemplateDefinition] = {
+    val template = PsiTreeUtil.getContextOfType(elem, strict, classOf[ScTemplateDefinition])
     if (template == null) return None
     template.extendsBlock.templateParents match {
-      case Some(parents) if PsiTreeUtil.isContextAncestor(parents, elem, true) => drvTemplate(template)
+      case Some(parents) if PsiTreeUtil.isContextAncestor(parents, elem, true) => drvTemplate(template, strict = true)
       case _ => Some(template)
     }
   }
@@ -1697,6 +1697,12 @@ object ScalaPsiUtil {
     val clauses = fun.paramClauses.clauses
     clauses.isEmpty || (clauses.length == 1 && clauses.head.isImplicit)
   }
+
+  def isInSqBrackets(element: PsiElement): Boolean = {
+    Option(element.getPrevSiblingNotWhitespaceComment).map(_.getNode).exists(_.getElementType == ScalaTokenTypes.tLSQBRACKET) &&
+      Option(element.getNextSiblingNotWhitespaceComment).map(_.getNode).exists(_.getElementType == ScalaTokenTypes.tRSQBRACKET)
+  }
+
 
   def padWithWhitespaces(element: PsiElement) {
     val range: TextRange = element.getTextRange
