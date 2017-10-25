@@ -13,7 +13,8 @@ ScalaFile
             PsiElement(.)('.')
             PsiElement(super)('super')
             PsiElement([)('[')
-            PsiElement(identifier)('g')
+            CodeReferenceElement: g
+              PsiElement(identifier)('g')
             PsiElement(])(']')
           PsiElement(.)('.')
           PsiElement(identifier)('b')
