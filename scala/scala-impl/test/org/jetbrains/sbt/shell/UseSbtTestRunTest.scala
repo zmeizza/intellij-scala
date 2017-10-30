@@ -139,7 +139,7 @@ abstract class UseSbtTestRunTest extends SbtProjectPlatformTestCase {
       new ExecutionEnvironmentBuilder(project, executor)
     executionEnvironmentBuilder.runProfile(config).buildAndExecute()
     runner.getConsoleView.flushDeferredText()
-    val exitCode = Await.result(logger.terminated, 10.minutes)
+    val exitCode = Await.result(logger.terminated, 3.minutes)
     val log = logger.getLog
     assert(exitCode != 0, "sbt shell completed with nonzero exit code. Full log:\n$log")
     expectedStrings.foreach(str => assert(log.contains(str), s"sbt shell console did not contain expected string '$str'. Full log:\n$log"))
