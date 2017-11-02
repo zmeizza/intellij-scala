@@ -15,11 +15,11 @@ resolvers in ThisBuild += Resolver.sonatypeRepo("snapshots")
 
 ideaBuild in ThisBuild := Versions.ideaVersion
 
-ideaDownloadDirectory in ThisBuild := Path.userHome / ".ScalaPluginIC" / "sdk"
+ideaDownloadDirectory in ThisBuild := homePrefix / ".ScalaPluginIC" / "sdk"
 
-testConfigDir in ThisBuild := Path.userHome / ".ScalaPluginIC" / "test-config"
+testConfigDir in ThisBuild := homePrefix / ".ScalaPluginIC" / "test-config"
 
-testSystemDir in ThisBuild := Path.userHome / ".ScalaPluginIC" / "test-system"
+testSystemDir in ThisBuild := homePrefix / ".ScalaPluginIC" / "test-system"
 
 onLoad in Global := ((s: State) => { "updateIdea" :: s}) compose (onLoad in Global).value
 
@@ -196,10 +196,10 @@ lazy val sbtLaunchTestDownloader =
     ideSkipProject := true
   )
 
-lazy val jmhBenchmarks =
-  newProject("benchmarks", file("scala/benchmarks"))
-    .dependsOn(scalaImpl % "test->test")
-    .enablePlugins(JmhPlugin)
+//lazy val jmhBenchmarks =
+//  newProject("benchmarks", file("scala/benchmarks"))
+//    .dependsOn(scalaImpl % "test->test")
+//    .enablePlugins(JmhPlugin)
 
 // Testing keys and settings
 import Common.TestCategory._

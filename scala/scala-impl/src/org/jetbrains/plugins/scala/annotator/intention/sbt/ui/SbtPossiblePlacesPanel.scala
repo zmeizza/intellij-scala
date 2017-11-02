@@ -68,20 +68,30 @@ class SbtPossiblePlacesPanel(project: Project, wizard: SbtArtifactSearchWizard, 
     while (tmpElement.getTextRange != myCurFileLine.element.getTextRange) {
       tmpElement = tmpElement.getParent
     }
-    val dep = AddSbtDependencyUtils.addDependency(tmpElement, wizard.resultArtifact.get)(project).get
+    val dep = AddSbtDependencyUtils.addDependency(tmpElement, wizard.resultArtifact.get)(project)
 
     extensions.inWriteAction {
-      myCurEditor.getDocument.setText(tmpFile.getText)
+      val text = dep match {
+        case Some(_)  => tmpFile.getText
+        case None     => "// Could not generate dependency string, please report this issue"
+      }
+      myCurEditor.getDocument.setText(text)
     }
 
     myCurEditor.getCaretModel.moveToOffset(myCurFileLine.offset)
-    val scrollingModel = myCurEditor.getScrollingModel
-    val oldPos = myCurEditor.offsetToLogicalPosition(myCurFileLine.offset)
+    val scrollingModel  = myCurEditor.getScrollingModel
+    val oldPos          = myCurEditor.offsetToLogicalPosition(myCurFileLine.offset)
     scrollingModel.scrollTo(new LogicalPosition(math.max(1, oldPos.line - EDITOR_TOP_MARGIN), oldPos.column),
       ScrollType.CENTER)
     val attributes = myCurEditor.getColorsScheme.getAttributes(CodeInsightColors.MATCHED_BRACE_ATTRIBUTES)
-    myCurEditor.getMarkupModel.addRangeHighlighter(dep.getTextRange.getStartOffset,
-      dep.getTextRange.getEndOffset,
+
+    val (startOffset, endOffset) = dep match {
+      case Some(elem) => (elem.getTextRange.getStartOffset, elem.getTextRange.getEndOffset)
+      case None => (0, 0)
+    }
+    myCurEditor.getMarkupModel.addRangeHighlighter(
+      startOffset,
+      endOffset,
       HighlighterLayer.SELECTION,
       attributes,
       HighlighterTargetArea.EXACT_RANGE
@@ -105,12 +115,10 @@ class SbtPossiblePlacesPanel(project: Project, wizard: SbtArtifactSearchWizard, 
   private class PlacesCellRenderer extends ColoredListCellRenderer[DependencyPlaceInfo] {
     override def customizeCellRenderer(list: JList[_ <: DependencyPlaceInfo], info: DependencyPlaceInfo, index: Int, selected: Boolean, hasFocus: Boolean): Unit = {
       setIcon(org.jetbrains.plugins.scala.icons.Icons.SBT_FILE)
-      append(info.path + ":", SimpleTextAttributes.REGULAR_ATTRIBUTES)
-      append(info.line.toString, getGrayAttributes(selected))
+      append(info.path + ":")
+      append(info.line.toString, SimpleTextAttributes.GRAY_ATTRIBUTES)
       if (info.affectedProjects.nonEmpty)
-        append(" (" + info.affectedProjects.map(_.toString).mkString(", ") + ")", SimpleTextAttributes.REGULAR_ATTRIBUTES)
+        append(" (" + info.affectedProjects.map(_.toString).mkString(", ") + ")")
     }
-    private def getGrayAttributes(selected: Boolean): SimpleTextAttributes =
-      if (!selected) SimpleTextAttributes.GRAY_ATTRIBUTES else SimpleTextAttributes.REGULAR_ATTRIBUTES
   }
 }

@@ -1037,32 +1037,6 @@ object ScalaPsiUtil {
     getMethodsForName(clazz, "update")
   }
 
-  /**
-    * For one classOf use PsiTreeUtil.getParenteOfType instead
-    */
-  def getParentOfType(element: PsiElement, clazz: Class[_ <: PsiElement]): PsiElement = {
-    getParentOfType(element, false, clazz)
-  }
-
-  /**
-    * For one classOf use PsiTreeUtil.getParenteOfType instead
-    */
-  def getParentOfType(element: PsiElement, classes: Class[_ <: PsiElement]*): PsiElement = {
-    getParentOfType(element, false, classes: _*)
-  }
-
-  /**
-    * For one classOf use PsiTreeUtil.getParenteOfType instead
-    */
-  def getParentOfType(element: PsiElement, strict: Boolean, classes: Class[_ <: PsiElement]*): PsiElement = {
-    var el: PsiElement = if (!strict) element else {
-      if (element == null) return null
-      element.getParent
-    }
-    while (el != null && !classes.exists(_.isInstance(el))) el = el.getParent
-    el
-  }
-
   @tailrec
   def getParentWithProperty(element: PsiElement, strict: Boolean, property: PsiElement => Boolean): Option[PsiElement] = {
     if (element == null) None
@@ -1426,28 +1400,16 @@ object ScalaPsiUtil {
   /**
     * If `param` is a synthetic parameter with a corresponding real parameter, return Some(realParameter), otherwise None
     */
-  def parameterForSyntheticParameter(param: ScParameter): Option[ScParameter] = {
-    val fun = PsiTreeUtil.getParentOfType(param, classOf[ScFunction], true)
-
-    def paramFromConstructor(td: ScClass) = td.constructor match {
-      case Some(constr) => constr.parameters.find(p => p.name == param.name) // TODO multiple parameter sections.
+  def parameterForSyntheticParameter(param: ScParameter): Option[ScParameter] =
+    param.parentOfType(classOf[ScFunction]).flatMap {
+      case fun if fun.isSyntheticCopy => Option(fun.containingClass)
+      case fun if fun.isSyntheticApply => getCompanionModule(fun.containingClass)
       case _ => None
-    }
-
-    if (fun == null) {
-      None
-    } else if (fun.isSyntheticCopy) {
-      fun.containingClass match {
-        case td: ScClass if td.isCase => paramFromConstructor(td)
-        case _ => None
-      }
-    } else if (fun.isSyntheticApply) {
-      getCompanionModule(fun.containingClass) match {
-        case Some(td: ScClass) if td.isCase => paramFromConstructor(td)
-        case _ => None
-      }
-    } else None
-  }
+    }.collect {
+      case td: ScClass if td.isCase => td
+    }.flatMap(_.constructor).toSeq
+      .flatMap(_.parameters)
+      .find(_.name == param.name) // TODO multiple parameter sections.
 
   def isReadonly(e: PsiElement): Boolean = {
     e match {
