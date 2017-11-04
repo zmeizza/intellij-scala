@@ -23,82 +23,71 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.plugins.scala.lang.actions.ActionTestBase;
 import org.jetbrains.plugins.scala.util.TestUtils;
 
-import java.io.IOException;
-
 
 abstract public class AbstractEnterActionTestBase extends ActionTestBase {
 
+    protected Editor myEditor;
+    protected FileEditorManager fileEditorManager;
+    protected String newDocumentText;
+    protected PsiFile myFile;
 
-
-  protected Editor myEditor;
-  protected FileEditorManager fileEditorManager;
-  protected String newDocumentText;
-  protected PsiFile myFile;
-
-  public AbstractEnterActionTestBase(String DATA_PATH) {
-    super(System.getProperty("path") != null ?
-            System.getProperty("path") :
-            DATA_PATH
-    );
-  }
-
-  @Override
-  protected void setSettings() {
-      super.setSettings();
-      getSettings().getIndentOptions().INDENT_SIZE = 2;
-      getSettings().getIndentOptions().CONTINUATION_INDENT_SIZE = 2;
-      getSettings().getIndentOptions().TAB_SIZE = 2;
-      getSettings().INDENT_CASE_FROM_SWITCH = true;
-  }
-
-  protected EditorActionHandler getMyHandler() {
-    return EditorActionManager.getInstance().getActionHandler(IdeActions.ACTION_EDITOR_ENTER);
-  }
-
-
-  private String processFile(final PsiFile file) throws IncorrectOperationException, InvalidDataException, IOException {
-    String result;
-    String fileText = file.getText();
-    int offset = fileText.indexOf(CARET_MARKER);
-    fileText = removeMarker(fileText);
-    myFile = TestUtils.createPseudoPhysicalScalaFile(getProject(), fileText);
-    fileEditorManager = FileEditorManager.getInstance(getProject());
-    myEditor = fileEditorManager.openTextEditor(new OpenFileDescriptor(getProject(), myFile.getVirtualFile(), 0), false);
-    assert myEditor != null;
-    myEditor.getCaretModel().moveToOffset(offset);
-
-    final myDataContext dataContext = getDataContext(myFile);
-    final EditorActionHandler handler = getMyHandler();
-
-    try {
-      performAction(getProject(), new Runnable() {
-        public void run() {
-          handler.execute(myEditor, myEditor.getCaretModel().getCurrentCaret(), dataContext);
-        }
-      });
-
-      offset = myEditor.getCaretModel().getOffset();
-      result = myEditor.getDocument().getText();
-      result = result.substring(0, offset) + CARET_MARKER + result.substring(offset);
-    } finally {
-      fileEditorManager.closeFile(myFile.getVirtualFile());
-      myEditor = null;
+    protected AbstractEnterActionTestBase(String... pathSegments) {
+        super(pathSegments);
     }
 
-    return result;
-  }
+    @Override
+    protected void withSettings(CommonCodeStyleSettings settings) {
+        super.withSettings(settings);
+        CommonCodeStyleSettings.IndentOptions indentOptions = settings.getIndentOptions();
+        indentOptions.INDENT_SIZE = 2;
+        indentOptions.CONTINUATION_INDENT_SIZE = 2;
+        indentOptions.TAB_SIZE = 2;
+        settings.INDENT_CASE_FROM_SWITCH = true;
+    }
 
-  public String transform(String testName, String[] data) throws Exception {
-    setSettings();
-    String fileText = data[0];
-    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(getProject(), fileText);
-    return processFile(psiFile);
-  }
 
+    private String processFile(final PsiFile file) throws IncorrectOperationException, InvalidDataException {
+        String result;
+        String fileText = file.getText();
+        int offset = fileText.indexOf(CARET_MARKER);
+        fileText = removeMarker(fileText);
+        myFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+        fileEditorManager = FileEditorManager.getInstance(myProject);
+        myEditor = fileEditorManager.openTextEditor(new OpenFileDescriptor(myProject, myFile.getVirtualFile(), 0), false);
+        assert myEditor != null;
+        myEditor.getCaretModel().moveToOffset(offset);
 
+        final myDataContext dataContext = getDataContext(myFile);
+        final EditorActionHandler handler = EditorActionManager.getInstance().getActionHandler(IdeActions.ACTION_EDITOR_ENTER);
 
+        try {
+            performAction(myProject, new Runnable() {
+                public void run() {
+                    handler.execute(myEditor, myEditor.getCaretModel().getCurrentCaret(), dataContext);
+                }
+            });
+
+            offset = myEditor.getCaretModel().getOffset();
+            result = myEditor.getDocument().getText();
+            result = result.substring(0, offset) + CARET_MARKER + result.substring(offset);
+        } finally {
+            fileEditorManager.closeFile(myFile.getVirtualFile());
+            myEditor = null;
+        }
+
+        return result;
+    }
+
+    public String transform(String testName, String[] data) {
+        super.transform(testName, data);
+
+        String fileText = data[0];
+        final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+        return processFile(psiFile);
+    }
 }

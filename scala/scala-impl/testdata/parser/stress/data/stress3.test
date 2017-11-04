@@ -1,3 +1,39 @@
 trait SetWrapper {
   var underlying: java.Set
 }
+-----
+ScalaFile:temp.scala
+  ScTrait: SetWrapper
+    AnnotationsList
+      <empty list>
+    Modifiers
+      <empty list>
+    PsiElement(trait)('trait')
+    PsiWhiteSpace(' ')
+    PsiElement(identifier)('SetWrapper')
+    PsiWhiteSpace(' ')
+    ExtendsBlock
+      ScTemplateBody
+        PsiElement({)('{')
+        PsiWhiteSpace('\n  ')
+        ScVariableDeclaration: underlying
+          AnnotationsList
+            <empty list>
+          Modifiers
+            <empty list>
+          PsiElement(var)('var')
+          PsiWhiteSpace(' ')
+          ListOfIdentifiers
+            Field identifier: underlying
+              PsiElement(identifier)('underlying')
+          PsiElement(:)(':')
+          PsiWhiteSpace(' ')
+          SimpleType: java.Set
+            CodeReferenceElement: java.Set
+              CodeReferenceElement: java
+                PsiElement(identifier)('java')
+              PsiElement(.)('.')
+              PsiElement(identifier)('Set')
+        PsiWhiteSpace('\n')
+        PsiElement(})('}')
+  PsiWhiteSpace('\n')

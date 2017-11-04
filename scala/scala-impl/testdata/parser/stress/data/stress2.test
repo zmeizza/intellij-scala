@@ -7,3 +7,75 @@ object A {
   }
 
 }
+-----
+ScalaFile:temp.scala
+  ScObject: A
+    AnnotationsList
+      <empty list>
+    Modifiers
+      <empty list>
+    PsiElement(object)('object')
+    PsiWhiteSpace(' ')
+    PsiElement(identifier)('A')
+    PsiWhiteSpace(' ')
+    ExtendsBlock
+      ScTemplateBody
+        PsiElement({)('{')
+        PsiWhiteSpace('\n\n  ')
+        ScFunctionDefinition: isRightIgnoring
+          AnnotationsList
+            <empty list>
+          Modifiers
+            <empty list>
+          PsiElement(def)('def')
+          PsiWhiteSpace(' ')
+          PsiElement(identifier)('isRightIgnoring')
+          Parameters
+            ParametersClause
+              PsiElement(()('(')
+              PsiElement())(')')
+          PsiWhiteSpace(' ')
+          PsiElement(=)('=')
+          PsiWhiteSpace(' ')
+          BlockExpression
+            PsiElement({)('{')
+            PsiWhiteSpace('\n    ')
+            MatchStatement
+              ReferenceExpression: p
+                PsiElement(identifier)('p')
+              PsiWhiteSpace(' ')
+              PsiElement(match)('match')
+              PsiWhiteSpace(' ')
+              PsiElement({)('{')
+              PsiWhiteSpace('\n      ')
+              CaseClauses
+                CaseClause
+                  PsiElement(case)('case')
+                  PsiWhiteSpace(' ')
+                  ConstructorPattern
+                    CodeReferenceElement: Star
+                      PsiElement(identifier)('Star')
+                    Pattern Argument List
+                      PsiElement(()('(')
+                      ConstructorPattern
+                        CodeReferenceElement: Ident
+                          PsiElement(identifier)('Ident')
+                        Pattern Argument List
+                          PsiElement(()('(')
+                          ReferencePattern: nme
+                            PsiElement(identifier)('nme')
+                          PsiElement())(')')
+                      PsiElement())(')')
+                  PsiWhiteSpace(' ')
+                  PsiElement(=>)('=>')
+                  PsiWhiteSpace(' ')
+                  BlockOfExpressions
+                    Literal
+                      PsiElement(true)('true')
+              PsiWhiteSpace('\n    ')
+              PsiElement(})('}')
+            PsiWhiteSpace('\n  ')
+            PsiElement(})('}')
+        PsiWhiteSpace('\n\n')
+        PsiElement(})('}')
+  PsiWhiteSpace('\n')

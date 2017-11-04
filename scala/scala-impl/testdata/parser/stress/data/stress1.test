@@ -6,3 +6,163 @@ trait SyntheticMethods {
         Select (Ident (vparamss), nme)))))))
     })))
 }
+-----
+ScalaFile:temp.scala
+  ScTrait: SyntheticMethods
+    AnnotationsList
+      <empty list>
+    Modifiers
+      <empty list>
+    PsiElement(trait)('trait')
+    PsiWhiteSpace(' ')
+    PsiElement(identifier)('SyntheticMethods')
+    PsiWhiteSpace(' ')
+    ExtendsBlock
+      ScTemplateBody
+        PsiElement({)('{')
+        PsiWhiteSpace('\n\n    ')
+        ScFunctionDefinition: productElementMethod
+          AnnotationsList
+            <empty list>
+          Modifiers
+            <empty list>
+          PsiElement(def)('def')
+          PsiWhiteSpace(' ')
+          PsiElement(identifier)('productElementMethod')
+          Parameters
+            ParametersClause
+              PsiElement(()('(')
+              PsiElement())(')')
+          PsiElement(:)(':')
+          PsiWhiteSpace(' ')
+          SimpleType: Tree
+            CodeReferenceElement: Tree
+              PsiElement(identifier)('Tree')
+          PsiWhiteSpace(' ')
+          PsiElement(=)('=')
+          PsiWhiteSpace(' ')
+          ExpressionInParenthesis
+            PsiElement(()('(')
+            MethodCall
+              ReferenceExpression: DefDef
+                PsiElement(identifier)('DefDef')
+              PsiWhiteSpace(' ')
+              ArgumentList
+                PsiElement(()('(')
+                MethodCall
+                  ReferenceExpression: Match
+                    PsiElement(identifier)('Match')
+                  PsiWhiteSpace(' ')
+                  ArgumentList
+                    PsiElement(()('(')
+                    MethodCall
+                      ReferenceExpression: Ident
+                        PsiElement(identifier)('Ident')
+                      PsiWhiteSpace(' ')
+                      ArgumentList
+                        PsiElement(()('(')
+                        ReferenceExpression: head
+                          PsiElement(identifier)('head')
+                        PsiElement())(')')
+                    PsiElement(,)(',')
+                    PsiWhiteSpace(' ')
+                    BlockExpression
+                      PsiElement({)('{')
+                      PsiWhiteSpace('\n        ')
+                      MethodCall
+                        ReferenceExpression: List
+                          PsiElement(identifier)('List')
+                        PsiWhiteSpace(' ')
+                        ArgumentList
+                          PsiElement(()('(')
+                          MethodCall
+                            ReferenceExpression: CaseDef
+                              PsiElement(identifier)('CaseDef')
+                            PsiWhiteSpace(' ')
+                            ArgumentList
+                              PsiElement(()('(')
+                              MethodCall
+                                ReferenceExpression: Ident
+                                  PsiElement(identifier)('Ident')
+                                PsiWhiteSpace(' ')
+                                ArgumentList
+                                  PsiElement(()('(')
+                                  ReferenceExpression: WILDCARD
+                                    PsiElement(identifier)('WILDCARD')
+                                  PsiElement())(')')
+                              PsiElement(,)(',')
+                              PsiWhiteSpace(' ')
+                              ReferenceExpression: EmptyTree
+                                PsiElement(identifier)('EmptyTree')
+                              PsiElement(,)(',')
+                              PsiWhiteSpace('\n        ')
+                              MethodCall
+                                ReferenceExpression: Throw
+                                  PsiElement(identifier)('Throw')
+                                PsiWhiteSpace(' ')
+                                ArgumentList
+                                  PsiElement(()('(')
+                                  MethodCall
+                                    ReferenceExpression: New
+                                      PsiElement(identifier)('New')
+                                    PsiWhiteSpace(' ')
+                                    ArgumentList
+                                      PsiElement(()('(')
+                                      MethodCall
+                                        ReferenceExpression: TypeTree
+                                          PsiElement(identifier)('TypeTree')
+                                        PsiWhiteSpace(' ')
+                                        ArgumentList
+                                          PsiElement(()('(')
+                                          ReferenceExpression: tpe
+                                            PsiElement(identifier)('tpe')
+                                          PsiElement())(')')
+                                      PsiElement(,)(',')
+                                      PsiWhiteSpace(' ')
+                                      MethodCall
+                                        ReferenceExpression: List
+                                          PsiElement(identifier)('List')
+                                        PsiWhiteSpace(' ')
+                                        ArgumentList
+                                          PsiElement(()('(')
+                                          MethodCall
+                                            ReferenceExpression: List
+                                              PsiElement(identifier)('List')
+                                            PsiWhiteSpace(' ')
+                                            ArgumentList
+                                              PsiElement(()('(')
+                                              PsiWhiteSpace('\n        ')
+                                              MethodCall
+                                                ReferenceExpression: Select
+                                                  PsiElement(identifier)('Select')
+                                                PsiWhiteSpace(' ')
+                                                ArgumentList
+                                                  PsiElement(()('(')
+                                                  MethodCall
+                                                    ReferenceExpression: Ident
+                                                      PsiElement(identifier)('Ident')
+                                                    PsiWhiteSpace(' ')
+                                                    ArgumentList
+                                                      PsiElement(()('(')
+                                                      ReferenceExpression: vparamss
+                                                        PsiElement(identifier)('vparamss')
+                                                      PsiElement())(')')
+                                                  PsiElement(,)(',')
+                                                  PsiWhiteSpace(' ')
+                                                  ReferenceExpression: nme
+                                                    PsiElement(identifier)('nme')
+                                                  PsiElement())(')')
+                                              PsiElement())(')')
+                                          PsiElement())(')')
+                                      PsiElement())(')')
+                                  PsiElement())(')')
+                              PsiElement())(')')
+                          PsiElement())(')')
+                      PsiWhiteSpace('\n    ')
+                      PsiElement(})('}')
+                    PsiElement())(')')
+                PsiElement())(')')
+            PsiElement())(')')
+        PsiWhiteSpace('\n')
+        PsiElement(})('}')
+  PsiWhiteSpace('\n')

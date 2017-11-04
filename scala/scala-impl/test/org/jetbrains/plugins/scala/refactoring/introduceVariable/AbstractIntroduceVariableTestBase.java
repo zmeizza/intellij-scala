@@ -3,7 +3,6 @@ package org.jetbrains.plugins.scala.refactoring.introduceVariable;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -30,8 +29,6 @@ import org.junit.Assert;
 import scala.Option;
 import scala.Tuple2;
 
-import java.io.IOException;
-
 /**
  * User: Alexander Podkhalyuzin
  * Date: 02.07.2008
@@ -54,11 +51,9 @@ abstract public class AbstractIntroduceVariableTestBase extends ActionTestBase {
   protected boolean replaceCompanionObjOccurrences = false;
   protected boolean replaceOccurrencesFromInheritors = false;
 
-  public AbstractIntroduceVariableTestBase(String DATA_PATH) {
-    super(System.getProperty("path") != null ?
-            System.getProperty("path") :
-            DATA_PATH
-    );
+  protected AbstractIntroduceVariableTestBase(String... pathSegments) {
+    super(pathSegments);
+
     replaceAllOccurences = System.getProperty("replaceAll") != null &&
             Boolean.parseBoolean(System.getProperty("path"));
     replaceCompanionObjOccurrences = System.getProperty("replaceCompanion") != null &&
@@ -80,13 +75,12 @@ abstract public class AbstractIntroduceVariableTestBase extends ActionTestBase {
     return fileText.substring(0, begin) + fileText.substring(fileText.indexOf("\n", begin) + 1);
   }
 
-  private String processFile(final PsiFile file) throws IncorrectOperationException, InvalidDataException, IOException {
-    Project project = getProject();
-    Object oldSettings = ScalaCodeStyleSettings.getInstance(getProject()).clone();
+  private String processFile(final PsiFile file) throws IncorrectOperationException, InvalidDataException {
+    Object oldSettings = ScalaCodeStyleSettings.getInstance(myProject).clone();
 
-    TypeAnnotationSettings.set(getProject(), TypeAnnotationSettings.alwaysAddType(ScalaCodeStyleSettings.getInstance(getProject())));
+    TypeAnnotationSettings.set(myProject, TypeAnnotationSettings.alwaysAddType(ScalaCodeStyleSettings.getInstance(myProject)));
 
-    final SyntheticClasses syntheticClasses = project.getComponent(SyntheticClasses.class);
+    final SyntheticClasses syntheticClasses = myProject.getComponent(SyntheticClasses.class);
     if (!syntheticClasses.isClassesRegistered()) {
       syntheticClasses.registerClasses();
     }
@@ -120,11 +114,11 @@ abstract public class AbstractIntroduceVariableTestBase extends ActionTestBase {
 
     int endOffset = fileText.indexOf(TestUtils.END_MARKER);
     fileText = TestUtils.removeEndMarker(fileText);
-    myFile = TestUtils.createPseudoPhysicalScalaFile(project, fileText);
-    fileEditorManager = FileEditorManager.getInstance(project);
+    myFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+    fileEditorManager = FileEditorManager.getInstance(myProject);
     VirtualFile virtualFile = myFile.getVirtualFile();
     assert virtualFile != null;
-    myEditor = fileEditorManager.openTextEditor(new OpenFileDescriptor(project, virtualFile, 0), false);
+    myEditor = fileEditorManager.openTextEditor(new OpenFileDescriptor(myProject, virtualFile, 0), false);
     assert myEditor != null;
 
     try {
@@ -140,7 +134,7 @@ abstract public class AbstractIntroduceVariableTestBase extends ActionTestBase {
         ScType[] types = null;
 
         Option<Tuple2<ScExpression, ScType[]>> maybeExpression =
-                ScalaRefactoringUtil.getExpressionWithTypes(myFile, startOffset, endOffset, project, myEditor);
+                ScalaRefactoringUtil.getExpressionWithTypes(myFile, startOffset, endOffset, myProject, myEditor);
         if (maybeExpression.isDefined()) {
           Tuple2<ScExpression, ScType[]> tuple2 = maybeExpression.get();
           selectedExpr = tuple2._1();
@@ -160,7 +154,7 @@ abstract public class AbstractIntroduceVariableTestBase extends ActionTestBase {
           ScTypeElement typeElement = optionType.get();
           String typeName = getName(fileText);
 
-          ScopeItem[] scopes = ScopeSuggester.suggestScopes(introduceVariableHandler, project, myEditor, myFile, typeElement);
+          ScopeItem[] scopes = ScopeSuggester.suggestScopes(introduceVariableHandler, myProject, myEditor, myFile, typeElement);
 
 //          if (replaceOccurrencesFromInheritors) {
 //            ScTypeDefinition classOrTrait = PsiTreeUtil.getParentOfType(scopes.get(0).fileEncloser(), ScClass.class, ScTrait.class);
@@ -192,15 +186,16 @@ abstract public class AbstractIntroduceVariableTestBase extends ActionTestBase {
       myEditor = null;
     }
 
-    TypeAnnotationSettings.set(getProject(), ((ScalaCodeStyleSettings) oldSettings));
+    TypeAnnotationSettings.set(myProject, ((ScalaCodeStyleSettings) oldSettings));
     return result;
   }
 
 
-  public String transform(String testName, String[] data) throws Exception {
-    setSettings();
+  public String transform(String testName, String[] data) {
+    super.transform(testName, data);
+
     String fileText = data[0];
-    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(getProject(), fileText);
+    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
 
     return processFile(psiFile);
   }

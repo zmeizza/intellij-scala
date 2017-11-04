@@ -10,7 +10,7 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import junit.framework.Test;
-import org.jetbrains.plugins.scala.testcases.BaseScalaFileSetTestCase;
+import org.jetbrains.plugins.scala.testcases.ScalaFileSetTestCase;
 import org.jetbrains.plugins.scala.util.ScalaToolsFactory;
 import org.jetbrains.plugins.scala.util.TestUtils;
 import org.junit.runner.RunWith;
@@ -23,23 +23,17 @@ import scala.Tuple4;
  */
 @SuppressWarnings({"ConstantConditions"})
 @RunWith(AllTests.class)
-public class SurroundWithTest extends BaseScalaFileSetTestCase{
-  private static final String DATA_PATH = "/surroundWith/data/";
+public class SurroundWithTest extends ScalaFileSetTestCase {
 
-
-  public SurroundWithTest(String path) {
-    super(path);
-  }
-
-  public static Test suite() {
-    return new SurroundWithTest(TestUtils.getTestDataPath() + DATA_PATH);
+  public SurroundWithTest() {
+    super("surroundWith", "data");
   }
 
   private void doSurround(final Project project, final PsiFile file,
                           Surrounder surrounder, int startSelection, int endSelection) {
     FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
     try {
-      Editor editor = fileEditorManager.openTextEditor(new OpenFileDescriptor(getProject(), file.getVirtualFile(), 0), false);
+      Editor editor = fileEditorManager.openTextEditor(new OpenFileDescriptor(myProject, file.getVirtualFile(), 0), false);
       editor.getSelectionModel().setSelection(startSelection, endSelection);
       SurroundWithHandler.invoke(project, editor, file, surrounder);
     } catch (Exception e) {
@@ -49,25 +43,31 @@ public class SurroundWithTest extends BaseScalaFileSetTestCase{
     }
   }
 
-  public String transform(String testName, String[] data) throws Exception {
+  public String transform(String testName, String[] data) {
+    super.transform(testName, data);
+
     Tuple4<String, Integer, Integer, Integer> res = SurroundWithTestUtil.prepareFile(data[0]);
     String fileText = res._1();
     final int startSelection = res._2();
     final int endSelection = res._3();
     final int surroundType = res._4();
-    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(getProject(), fileText);
+    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
 
     final Surrounder[] surrounder = ScalaToolsFactory.getInstance().createSurroundDescriptors().getSurroundDescriptors()[0].getSurrounders();
-    CommandProcessor.getInstance().executeCommand(getProject(), new Runnable() {
+    CommandProcessor.getInstance().executeCommand(myProject, new Runnable() {
       public void run() {
         ApplicationManager.getApplication().runWriteAction(new Runnable() {
           public void run() {
-            doSurround(getProject(), psiFile, surrounder[surroundType], startSelection, endSelection);
+            doSurround(myProject, psiFile, surrounder[surroundType], startSelection, endSelection);
           }
         });
       }
     }, null, null);
 
     return psiFile.getText();
+  }
+
+  public static Test suite() {
+    return new SurroundWithTest();
   }
 }

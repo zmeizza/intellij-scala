@@ -4,41 +4,35 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.codeStyle.arrangement.engine.ArrangementEngine;
 import com.intellij.util.IncorrectOperationException;
 import com.intellij.util.containers.ContainerUtilRt;
 import junit.framework.Test;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.plugins.scala.testcases.BaseScalaFileSetTestCase;
+import org.jetbrains.plugins.scala.testcases.ScalaFileSetTestCase;
 import org.jetbrains.plugins.scala.util.TestUtils;
 import org.junit.runner.RunWith;
 import org.junit.runners.AllTests;
-
-import java.io.File;
-import java.io.IOException;
 
 /**
  * @author Roman.Shein
  * Date: 26.07.13
  */
 @RunWith(AllTests.class)
-public abstract class RearrangerTest extends BaseScalaFileSetTestCase {
-  @NonNls
-  private static final String DATA_PATH = "/rearranger/failedData";
+public abstract class RearrangerTest extends ScalaFileSetTestCase {
 
-  public RearrangerTest() throws IOException {
-    super(System.getProperty("path") != null ? System.getProperty("path") : (new File(TestUtils.getTestDataPath() + DATA_PATH)).getCanonicalPath());
+  public RearrangerTest() {
+    super("rearranger", "failedData");
   }
 
   @Override
   public String transform(String testName, String[] data) {
+    super.transform(testName, data);
+
     String fileText = data[0];
-    Project project = getProject();
-    final PsiFile file = TestUtils.createPseudoPhysicalScalaFile(project, fileText);
-    CommandProcessor.getInstance().executeCommand(project, new Runnable() {
+    final PsiFile file = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+    CommandProcessor.getInstance().executeCommand(myProject, new Runnable() {
       public void run() {
         ApplicationManager.getApplication().runWriteAction(new Runnable() {
           public void run() {
@@ -55,8 +49,7 @@ public abstract class RearrangerTest extends BaseScalaFileSetTestCase {
   }
 
   private void rearrange(PsiFile file) {
-    Project project = getProject();
-    final ArrangementEngine engine = ServiceManager.getService(project, ArrangementEngine.class);
+    final ArrangementEngine engine = ServiceManager.getService(myProject, ArrangementEngine.class);
     engine.arrange(file, ContainerUtilRt.newArrayList(file.getTextRange()));
     PsiDocumentManager documentManager = PsiDocumentManager.getInstance(file.getProject());
     Document document = documentManager.getDocument(file);
@@ -67,7 +60,7 @@ public abstract class RearrangerTest extends BaseScalaFileSetTestCase {
     }
   }
 
-  public static Test suite() throws IOException {
+  public static Test suite() {
     return new ScalaFailedRearrangerTest();
   }
 }

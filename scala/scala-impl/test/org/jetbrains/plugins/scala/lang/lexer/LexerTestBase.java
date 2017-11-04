@@ -1,31 +1,33 @@
 package org.jetbrains.plugins.scala.lang.lexer;
 
 import com.intellij.lexer.Lexer;
-import org.jetbrains.plugins.scala.testcases.BaseScalaFileSetTestCase;
+import org.jetbrains.plugins.scala.testcases.ScalaFileSetTestCase;
 
 /**
  * User: Dmitry Naidanov
  * Date: 11/21/11
  */
-abstract public class LexerTestBase extends BaseScalaFileSetTestCase {
-  protected Lexer lexer;
-  
-  public LexerTestBase(String dataPath, Lexer lexer) {
-    super(System.getProperty("path") != null ? System.getProperty("path") : dataPath);
-    this.lexer = lexer;
+abstract public class LexerTestBase extends ScalaFileSetTestCase {
+
+  protected LexerTestBase(String... pathSegments) {
+    super(pathSegments);
   }
 
+  protected abstract Lexer createLexer();
   
   @Override
-  public String transform(String testName, String[] data) throws Exception {
-    String fileText = data[0];
+  public String transform(String testName, String[] data) {
+    super.transform(testName, data);
 
+    String fileText = data[0].replaceAll("\n+$", "");
+
+    Lexer lexer = createLexer();
     lexer.start(fileText);
 
     StringBuilder buffer = new StringBuilder();
 
     while (lexer.getTokenType() != null) {
-      buffer.append(prettyPrintToken());
+      buffer.append(prettyPrintToken(lexer));
       lexer.advance();
       if (lexer.getTokenType() != null) {
         buffer.append("\n");
@@ -35,7 +37,7 @@ abstract public class LexerTestBase extends BaseScalaFileSetTestCase {
     return buffer.toString();
   }
 
-  protected String prettyPrintToken() {
+  protected String prettyPrintToken(Lexer lexer) {
     if (lexer.getTokenType() == null) return "null";
 
     CharSequence s = lexer.getBufferSequence();

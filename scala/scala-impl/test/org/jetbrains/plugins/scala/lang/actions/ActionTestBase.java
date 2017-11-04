@@ -15,7 +15,10 @@
 
 package org.jetbrains.plugins.scala.lang.actions;
 
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.actionSystem.DataProvider;
+import com.intellij.openapi.actionSystem.LangDataKeys;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.project.Project;
@@ -23,20 +26,18 @@ import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.plugins.scala.testcases.BaseScalaFileSetTestCase;
-
-import java.io.IOException;
+import org.jetbrains.plugins.scala.testcases.ScalaFileSetTestCase;
 
 /**
  * @author Ilya.Sergey
  */
-public abstract class ActionTestBase extends BaseScalaFileSetTestCase {
+public abstract class ActionTestBase extends ScalaFileSetTestCase {
 
   protected static final String CARET_MARKER = "<caret>";
   protected int myOffset;
 
-  public ActionTestBase(String path) {
-    super(path);
+  protected ActionTestBase(String... pathSegments) {
+    super(pathSegments);
   }
 
   /**
@@ -49,7 +50,7 @@ public abstract class ActionTestBase extends BaseScalaFileSetTestCase {
   /**
    * Returns context for action performing
    */
-  protected myDataContext getDataContext(PsiFile file) throws InvalidDataException, IOException {
+  protected myDataContext getDataContext(PsiFile file) throws InvalidDataException {
     return new myDataContext(file);
   }
 

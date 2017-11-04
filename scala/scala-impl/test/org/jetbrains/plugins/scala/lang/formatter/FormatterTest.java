@@ -23,13 +23,11 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.util.IncorrectOperationException;
 import junit.framework.Test;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.plugins.scala.testcases.BaseScalaFileSetTestCase;
+import org.jetbrains.plugins.scala.testcases.ScalaFileSetTestCase;
 import org.jetbrains.plugins.scala.util.TestUtils;
 import org.junit.runner.RunWith;
 import org.junit.runners.AllTests;
 
-import java.io.File;
 import java.io.IOException;
 
 /**
@@ -38,20 +36,14 @@ import java.io.IOException;
  */
 
 @RunWith(AllTests.class)
-public class FormatterTest extends BaseScalaFileSetTestCase {
-  @NonNls
-  private static final String DATA_PATH = "/formatter/data/";
+public class FormatterTest extends ScalaFileSetTestCase {
 
-  public FormatterTest() throws IOException {
-    super(
-      System.getProperty("path") != null ?
-      System.getProperty("path") :
-      (new File(TestUtils.getTestDataPath() + DATA_PATH)).getCanonicalPath()
-    );
+  protected FormatterTest(String... pathSegments) {
+    super(pathSegments);
   }
 
-  public FormatterTest(String path) {
-    super(path);
+  public FormatterTest() {
+    this("formatter", "data");
   }
 
   protected void performFormatting(final Project project, final PsiFile file) throws IncorrectOperationException {
@@ -59,15 +51,17 @@ public class FormatterTest extends BaseScalaFileSetTestCase {
     CodeStyleManager.getInstance(project).reformatText(file, myTextRange.getStartOffset(), myTextRange.getEndOffset());
   }
 
-  public String transform(String testName, String[] data) throws Exception {
+  public String transform(String testName, String[] data) {
+    super.transform(testName, data);
+
     String fileText = data[0];
-    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(getProject(), fileText);
-    CommandProcessor.getInstance().executeCommand(getProject(), new Runnable() {
+    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+    CommandProcessor.getInstance().executeCommand(myProject, new Runnable() {
       public void run() {
         ApplicationManager.getApplication().runWriteAction(new Runnable() {
           public void run() {
             try {
-              performFormatting(getProject(), psiFile);
+              performFormatting(myProject, psiFile);
             } catch (IncorrectOperationException e) {
               e.printStackTrace();
             }

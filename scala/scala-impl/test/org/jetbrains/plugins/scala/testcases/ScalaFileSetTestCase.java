@@ -15,39 +15,47 @@
 
 package org.jetbrains.plugins.scala.testcases;
 
-import com.intellij.openapi.project.Project;
+import com.intellij.FileSetTestCase;
 import com.intellij.psi.codeStyle.CodeStyleSettingsManager;
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
-import org.jetbrains.annotations.NonNls;
 import org.jetbrains.plugins.scala.ScalaLanguage;
 import org.jetbrains.plugins.scala.ScalaLoader;
+import org.jetbrains.plugins.scala.util.TestUtils;
+
+import java.nio.file.Paths;
 
 public abstract class ScalaFileSetTestCase extends FileSetTestCase {
-  @NonNls
-  protected final static String TEMP_FILE = "temp.scala";
 
+    protected ScalaFileSetTestCase(String... pathSegments) {
+        super(getPath(pathSegments));
+    }
 
-  public ScalaFileSetTestCase(String path) {
-    super(path);
-  }
+    @Override
+    protected void setUp() {
+        super.setUp();
+        ScalaLoader.loadScala();
+    }
 
-  protected CommonCodeStyleSettings getSettings() {
-      return CodeStyleSettingsManager.getSettings(getProject()).getCommonSettings(ScalaLanguage.INSTANCE);
-  }
+    @Override
+    public String transform(String s, String[] strings) {
+        CommonCodeStyleSettings settings = CodeStyleSettingsManager.getSettings(myProject)
+                .getCommonSettings(ScalaLanguage.INSTANCE);
+        withSettings(settings);
 
-  protected void setSettings() {
-      getSettings().getIndentOptions().INDENT_SIZE = 2;
-      getSettings().getIndentOptions().CONTINUATION_INDENT_SIZE = 2;
-      getSettings().getIndentOptions().TAB_SIZE = 2;
-  }
+        return null;
+    }
 
-  protected void setUp(Project project) {
-    super.setUp(project);
-    ScalaLoader.loadScala();
-    setSettings();
-  }
+    protected void withSettings(CommonCodeStyleSettings settings) {
+        CommonCodeStyleSettings.IndentOptions indentOptions = settings.getIndentOptions();
+        indentOptions.INDENT_SIZE = 2;
+        indentOptions.CONTINUATION_INDENT_SIZE = 2;
+        indentOptions.TAB_SIZE = 2;
+    }
 
-  protected void tearDown(Project project) {
-    super.tearDown(project);
-  }
+    private static String getPath(String... pathSegments) {
+        String pathProperty = System.getProperty("path");
+        return pathProperty != null ?
+                pathProperty :
+                Paths.get(TestUtils.getTestDataPath(), pathSegments).toString();
+    }
 }

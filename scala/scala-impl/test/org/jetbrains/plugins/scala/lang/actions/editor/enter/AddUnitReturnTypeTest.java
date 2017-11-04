@@ -1,10 +1,8 @@
 package org.jetbrains.plugins.scala.lang.actions.editor.enter;
 
-import com.intellij.openapi.project.Project;
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import junit.framework.Test;
 import org.jetbrains.plugins.scala.lang.formatting.settings.ScalaCodeStyleSettings;
-import org.jetbrains.plugins.scala.util.TestUtils;
 import org.junit.runner.RunWith;
 import org.junit.runners.AllTests;
 
@@ -15,15 +13,14 @@ import org.junit.runners.AllTests;
 @RunWith(AllTests.class)
 public class AddUnitReturnTypeTest extends AbstractEnterActionTestBase {
   public AddUnitReturnTypeTest() {
-    super(TestUtils.getTestDataPath() + "/actions/editor/enter/addunit");
+    super("actions", "editor", "enter", "addunit");
   }
 
   @Override
-  protected void setSettings() {
-    super.setSettings();
+  protected void withSettings(CommonCodeStyleSettings settings) {
+    super.withSettings(settings);
 
-    final CommonCodeStyleSettings settings = getSettings();
-    final ScalaCodeStyleSettings scalaSettings = settings.getRootSettings().getCustomSettings(ScalaCodeStyleSettings.class);
+    ScalaCodeStyleSettings scalaSettings = settings.getRootSettings().getCustomSettings(ScalaCodeStyleSettings.class);
     scalaSettings.ENFORCE_FUNCTIONAL_SYNTAX_FOR_UNIT = true;
   }
 

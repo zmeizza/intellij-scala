@@ -15,9 +15,8 @@ import org.jetbrains.plugins.scala.lang.refactoring.util.ScalaRefactoringUtil.{g
 import org.jetbrains.plugins.scala.lang.refactoring.util._
 import org.jetbrains.plugins.scala.util.TestUtils._
 
-abstract class AbstractIntroduceVariableValidatorTestBase(kind: String) extends ActionTestBase(
-  Option(System.getProperty("path")).getOrElse(s"""$getTestDataPath/introduceVariable/validator/$kind""")
-) {
+abstract class AbstractIntroduceVariableValidatorTestBase(kind: String)
+  extends ActionTestBase(s"introduceVariable", "validator", kind) {
   protected var myEditor: Editor = _
   protected var fileEditorManager: FileEditorManager = _
   protected var myFile: PsiFile = _
@@ -25,9 +24,10 @@ abstract class AbstractIntroduceVariableValidatorTestBase(kind: String) extends 
   import AbstractIntroduceVariableValidatorTestBase._
 
   override def transform(testName: String, data: Array[String]): String = {
-    setSettings()
+    super.transform(testName, data)
+
     val fileText = data(0)
-    val psiFile = createPseudoPhysicalScalaFile(getProject, fileText)
+    val psiFile = createPseudoPhysicalScalaFile(myProject, fileText)
     processFile(psiFile)
   }
 
@@ -53,13 +53,13 @@ abstract class AbstractIntroduceVariableValidatorTestBase(kind: String) extends 
     val endOffset = fileText.indexOf(END_MARKER)
     fileText = removeEndMarker(fileText)
 
-    myFile = createPseudoPhysicalScalaFile(getProject, fileText)
-    fileEditorManager = FileEditorManager.getInstance(getProject)
-    myEditor = fileEditorManager.openTextEditor(new OpenFileDescriptor(getProject, myFile.getVirtualFile, 0), false)
+    myFile = createPseudoPhysicalScalaFile(myProject, fileText)
+    fileEditorManager = FileEditorManager.getInstance(myProject)
+    myEditor = fileEditorManager.openTextEditor(new OpenFileDescriptor(myProject, myFile.getVirtualFile, 0), false)
     myEditor.getSelectionModel.setSelection(startOffset, endOffset)
 
     try {
-      val maybeValidator = getValidator(myFile)(getProject, myEditor)
+      val maybeValidator = getValidator(myFile)(myProject, myEditor)
       maybeValidator.toSeq
         .flatMap(_.findConflicts(getName(fileText), replaceAllOccurrences))
         .map(_._2)
