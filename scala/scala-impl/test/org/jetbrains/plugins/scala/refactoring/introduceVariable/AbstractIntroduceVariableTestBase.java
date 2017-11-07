@@ -23,11 +23,12 @@ import org.jetbrains.plugins.scala.lang.refactoring.introduceVariable.ScalaIntro
 import org.jetbrains.plugins.scala.lang.refactoring.introduceVariable.ScopeItem;
 import org.jetbrains.plugins.scala.lang.refactoring.introduceVariable.ScopeSuggester;
 import org.jetbrains.plugins.scala.lang.refactoring.util.ScalaRefactoringUtil;
-import org.jetbrains.plugins.scala.util.TestUtils;
 import org.jetbrains.plugins.scala.util.TypeAnnotationSettings;
 import org.junit.Assert;
 import scala.Option;
 import scala.Tuple2;
+
+import static org.jetbrains.plugins.scala.util.TestUtils.*;
 
 /**
  * User: Alexander Podkhalyuzin
@@ -88,10 +89,10 @@ abstract public class AbstractIntroduceVariableTestBase extends ActionTestBase {
     String fileText = file.getText();
 
 
-    int startOffset = fileText.indexOf(TestUtils.BEGIN_MARKER);
+    int startOffset = fileText.indexOf(BEGIN_MARKER);
     if (startOffset >= 0) {
       replaceAllOccurences = false;
-      fileText = TestUtils.removeBeginMarker(fileText);
+      fileText = removeBeginMarker(fileText, startOffset);
     } else {
       startOffset = fileText.indexOf(COMPANION_MARKER);
       if (startOffset >= 0) {
@@ -112,9 +113,9 @@ abstract public class AbstractIntroduceVariableTestBase extends ActionTestBase {
       }
     }
 
-    int endOffset = fileText.indexOf(TestUtils.END_MARKER);
-    fileText = TestUtils.removeEndMarker(fileText);
-    myFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+    int endOffset = fileText.indexOf(END_MARKER);
+    fileText = removeEndMarker(fileText, endOffset);
+    myFile = createScalaFileFromText(fileText);
     fileEditorManager = FileEditorManager.getInstance(myProject);
     VirtualFile virtualFile = myFile.getVirtualFile();
     assert virtualFile != null;
@@ -178,9 +179,6 @@ abstract public class AbstractIntroduceVariableTestBase extends ActionTestBase {
       } else {
         Assert.assertTrue("Element should be typeElement or Expression", false);
       }
-
-      //int caretOffset = myEditor.getCaretModel().getOffset();
-      //result = result.substring(0, caretOffset) + TestUtils.CARET_MARKER + result.substring(caretOffset);
     } finally {
       fileEditorManager.closeFile(virtualFile);
       myEditor = null;
@@ -194,9 +192,7 @@ abstract public class AbstractIntroduceVariableTestBase extends ActionTestBase {
   public String transform(String testName, String[] data) {
     super.transform(testName, data);
 
-    String fileText = data[0];
-    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
-
+    PsiFile psiFile = createScalaFileFrom(data);
     return processFile(psiFile);
   }
 

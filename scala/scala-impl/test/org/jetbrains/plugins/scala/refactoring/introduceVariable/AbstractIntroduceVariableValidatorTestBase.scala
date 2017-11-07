@@ -16,58 +16,49 @@ import org.jetbrains.plugins.scala.lang.refactoring.util._
 import org.jetbrains.plugins.scala.util.TestUtils._
 
 abstract class AbstractIntroduceVariableValidatorTestBase(kind: String)
-  extends ActionTestBase(s"introduceVariable", "validator", kind) {
-  protected var myEditor: Editor = _
-  protected var fileEditorManager: FileEditorManager = _
-  protected var myFile: PsiFile = _
+  extends ActionTestBase("introduceVariable", "validator", kind) {
 
   import AbstractIntroduceVariableValidatorTestBase._
 
   override def transform(testName: String, data: Array[String]): String = {
     super.transform(testName, data)
 
-    val fileText = data(0)
-    val psiFile = createPseudoPhysicalScalaFile(myProject, fileText)
+    val psiFile = createScalaFileFrom(data)
     processFile(psiFile)
   }
 
-  protected def removeAllMarker(text: String): String = {
-    val index = text.indexOf(ALL_MARKER)
-    myOffset = index - 1
-    text.substring(0, index) + text.substring(index + ALL_MARKER.length)
-  }
-
   private def processFile(file: PsiFile): String = {
-    var replaceAllOccurrences = false
     var fileText = file.getText
-    var startOffset = fileText.indexOf(BEGIN_MARKER)
-    if (startOffset < 0) {
-      startOffset = fileText.indexOf(ALL_MARKER)
-      replaceAllOccurrences = true
-      fileText = removeAllMarker(fileText)
-    }
-    else {
-      replaceAllOccurrences = false
-      fileText = removeBeginMarker(fileText)
-    }
-    val endOffset = fileText.indexOf(END_MARKER)
-    fileText = removeEndMarker(fileText)
 
-    myFile = createPseudoPhysicalScalaFile(myProject, fileText)
-    fileEditorManager = FileEditorManager.getInstance(myProject)
-    myEditor = fileEditorManager.openTextEditor(new OpenFileDescriptor(myProject, myFile.getVirtualFile, 0), false)
-    myEditor.getSelectionModel.setSelection(startOffset, endOffset)
+    var startOffset = fileText.indexOf(BEGIN_MARKER)
+    val replaceAllOccurrences = startOffset < 0
+
+    fileText = if (replaceAllOccurrences) {
+      startOffset = fileText.indexOf(ALL_MARKER)
+
+      myOffset = startOffset - 1
+      removeMarker(fileText, ALL_MARKER, startOffset)
+      fileText.substring(0, startOffset) + fileText.substring(startOffset + ALL_MARKER.length)
+    } else {
+      removeBeginMarker(fileText, startOffset)
+    }
+
+    val endOffset = fileText.indexOf(END_MARKER)
+    fileText = removeEndMarker(fileText, endOffset)
+
+    val fileEditorManager = FileEditorManager.getInstance(myProject)
+    val editor = fileEditorManager.openTextEditor(new OpenFileDescriptor(myProject, file.getVirtualFile, 0), false)
+    editor.getSelectionModel.setSelection(startOffset, endOffset)
 
     try {
-      val maybeValidator = getValidator(myFile)(myProject, myEditor)
+      val maybeValidator = getValidator(file)(myProject, editor)
       maybeValidator.toSeq
         .flatMap(_.findConflicts(getName(fileText), replaceAllOccurrences))
         .map(_._2)
         .toSet[String]
         .mkString("\n")
     } finally {
-      fileEditorManager.closeFile(myFile.getVirtualFile)
-      myEditor = null
+      fileEditorManager.closeFile(file.getVirtualFile)
     }
   }
 

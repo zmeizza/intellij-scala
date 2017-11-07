@@ -12,7 +12,6 @@ import com.intellij.psi.PsiFile;
 import junit.framework.Test;
 import org.jetbrains.plugins.scala.testcases.ScalaFileSetTestCase;
 import org.jetbrains.plugins.scala.util.ScalaToolsFactory;
-import org.jetbrains.plugins.scala.util.TestUtils;
 import org.junit.runner.RunWith;
 import org.junit.runners.AllTests;
 import scala.Tuple4;
@@ -51,7 +50,7 @@ public class SurroundWithTest extends ScalaFileSetTestCase {
     final int startSelection = res._2();
     final int endSelection = res._3();
     final int surroundType = res._4();
-    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+    PsiFile psiFile = createScalaFileFromText(fileText);
 
     final Surrounder[] surrounder = ScalaToolsFactory.getInstance().createSurroundDescriptors().getSurroundDescriptors()[0].getSurrounders();
     CommandProcessor.getInstance().executeCommand(myProject, new Runnable() {

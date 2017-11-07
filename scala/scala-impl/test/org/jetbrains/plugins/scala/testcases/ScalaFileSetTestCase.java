@@ -16,6 +16,10 @@
 package org.jetbrains.plugins.scala.testcases;
 
 import com.intellij.FileSetTestCase;
+import com.intellij.openapi.fileTypes.FileType;
+import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiFileFactory;
 import com.intellij.psi.codeStyle.CodeStyleSettingsManager;
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import org.jetbrains.plugins.scala.ScalaLanguage;
@@ -23,6 +27,8 @@ import org.jetbrains.plugins.scala.ScalaLoader;
 import org.jetbrains.plugins.scala.util.TestUtils;
 
 import java.nio.file.Paths;
+
+import static com.intellij.util.LocalTimeCounter.currentTime;
 
 public abstract class ScalaFileSetTestCase extends FileSetTestCase {
 
@@ -50,6 +56,18 @@ public abstract class ScalaFileSetTestCase extends FileSetTestCase {
         indentOptions.INDENT_SIZE = 2;
         indentOptions.CONTINUATION_INDENT_SIZE = 2;
         indentOptions.TAB_SIZE = 2;
+    }
+
+    protected final PsiFile createScalaFileFrom(String[] data) {
+        return createScalaFileFromText(data[0].replaceFirst("\n$", ""));
+    }
+
+    protected final PsiFile createScalaFileFromText(String fileText) {
+        String fileName = myProject.getBaseDir() + "temp.scala";
+        FileType fileType = FileTypeManager.getInstance().getFileTypeByFileName(fileName);
+
+        PsiFileFactory psiFileFactory = PsiFileFactory.getInstance(myProject);
+        return psiFileFactory.createFileFromText(fileName, fileType, fileText, currentTime(), true);
     }
 
     private static String getPath(String... pathSegments) {

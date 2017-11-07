@@ -18,7 +18,6 @@ package org.jetbrains.plugins.scala.lang.parser;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.impl.DebugUtil;
 import org.jetbrains.plugins.scala.testcases.ScalaFileSetTestCase;
-import org.jetbrains.plugins.scala.util.TestUtils;
 
 public abstract class AbstractParserTest extends ScalaFileSetTestCase {
 
@@ -29,9 +28,7 @@ public abstract class AbstractParserTest extends ScalaFileSetTestCase {
     public String transform(String testName, String[] data) {
         super.transform(testName, data);
 
-        String fileText = data[0].replaceFirst("\n$", "");
-        PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
-
+        PsiFile psiFile = createScalaFileFrom(data);
         return DebugUtil.psiToString(psiFile, false).replace(":" + psiFile.getName(), "");
     }
 }

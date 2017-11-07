@@ -26,7 +26,9 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.plugins.scala.lang.actions.ActionTestBase;
-import org.jetbrains.plugins.scala.util.TestUtils;
+
+import static com.intellij.testFramework.EditorTestUtil.CARET_TAG;
+import static org.jetbrains.plugins.scala.util.TestUtils.removeCaretMarker;
 
 
 abstract public class AbstractEnterActionTestBase extends ActionTestBase {
@@ -54,9 +56,9 @@ abstract public class AbstractEnterActionTestBase extends ActionTestBase {
     private String processFile(final PsiFile file) throws IncorrectOperationException, InvalidDataException {
         String result;
         String fileText = file.getText();
-        int offset = fileText.indexOf(CARET_MARKER);
-        fileText = removeMarker(fileText);
-        myFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+        int offset = fileText.indexOf(CARET_TAG);
+        fileText = removeCaretMarker(fileText, offset);
+        myFile = createScalaFileFromText(fileText);
         fileEditorManager = FileEditorManager.getInstance(myProject);
         myEditor = fileEditorManager.openTextEditor(new OpenFileDescriptor(myProject, myFile.getVirtualFile(), 0), false);
         assert myEditor != null;
@@ -74,7 +76,7 @@ abstract public class AbstractEnterActionTestBase extends ActionTestBase {
 
             offset = myEditor.getCaretModel().getOffset();
             result = myEditor.getDocument().getText();
-            result = result.substring(0, offset) + CARET_MARKER + result.substring(offset);
+            result = result.substring(0, offset) + CARET_TAG + result.substring(offset);
         } finally {
             fileEditorManager.closeFile(myFile.getVirtualFile());
             myEditor = null;
@@ -86,8 +88,7 @@ abstract public class AbstractEnterActionTestBase extends ActionTestBase {
     public String transform(String testName, String[] data) {
         super.transform(testName, data);
 
-        String fileText = data[0];
-        final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+        PsiFile psiFile = createScalaFileFrom(data);
         return processFile(psiFile);
     }
 }

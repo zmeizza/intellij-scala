@@ -17,18 +17,13 @@ package org.jetbrains.plugins.scala.util;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.fileTypes.FileTypeManager;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.JavaSdk;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiFileFactory;
+import com.intellij.testFramework.EditorTestUtil;
 import com.intellij.testFramework.ThreadTracker;
-import com.intellij.util.IncorrectOperationException;
-import com.intellij.util.LocalTimeCounter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.plugins.scala.Console;
 import org.jetbrains.plugins.scala.debugger.DebuggerTestUtil$;
@@ -51,29 +46,7 @@ public class TestUtils {
   public static final String BEGIN_MARKER = "<begin>";
   public static final String END_MARKER = "<end>";
 
-
-  public static PsiFile createPseudoPhysicalScalaFile(final Project project, final String text) throws IncorrectOperationException {
-    String TEMP_FILE = project.getBaseDir() + "temp.scala";
-    return PsiFileFactory.getInstance(project).createFileFromText(
-        TEMP_FILE,
-        FileTypeManager.getInstance().getFileTypeByFileName(TEMP_FILE),
-        text,
-        LocalTimeCounter.currentTime(),
-        true);
-  }
-
   private static String TEST_DATA_PATH = null;
-
-  public static String getTestName(String name, boolean lowercaseFirstLetter) {
-    Assert.assertTrue(name.startsWith("test"));
-    name = name.substring("test".length());
-    if (lowercaseFirstLetter) {
-      name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-    }
-    return name;
-  }
-
-
 
   @NotNull
   public static String getTestDataPath() {
@@ -137,21 +110,27 @@ public class TestUtils {
     return getIvyCachePath() + "/org.scala-lang/scala-library/jars/scala-library-2.10.6.jar";
   }
 
-  public static String removeBeginMarker(String text) {
-    int index = text.indexOf(BEGIN_MARKER);
-    return text.substring(0, index) + text.substring(index + BEGIN_MARKER.length());
+    public static String removeBeginMarker(String text, int offset) {
+        return removeMarker(text, BEGIN_MARKER, offset);
+    }
+
+    public static String removeEndMarker(String text, int offset) {
+        return removeMarker(text, END_MARKER, offset);
+    }
+
+    public static String removeCaretMarker(String text, int offset) {
+        return removeMarker(text, EditorTestUtil.CARET_TAG, offset);
   }
 
-  public static String removeEndMarker(String text) {
-    int index = text.indexOf(END_MARKER);
-    return text.substring(0, index) + text.substring(index + END_MARKER.length());
+    public static String removeMarker(String text, String marker, int offset) {
+        return text.substring(0, offset) + text.substring(offset + marker.length());
   }
 
   private static final long ETALON_TIMING = 438;
 
-  public static final boolean COVERAGE_ENABLED_BUILD = "true".equals(System.getProperty("idea.coverage.enabled.build"));
+  private static final boolean COVERAGE_ENABLED_BUILD = "true".equals(System.getProperty("idea.coverage.enabled.build"));
 
-  public static void assertTiming(String message, long expected, long actual) {
+  private static void assertTiming(String message, long expected, long actual) {
     if (COVERAGE_ENABLED_BUILD) return;
     long expectedOnMyMachine = expected * Timings.MACHINE_TIMING / ETALON_TIMING;
     final double acceptableChangeFactor = 1.1;
@@ -175,10 +154,7 @@ public class TestUtils {
   }
 
   public static void assertTiming(String message, long expected, @NotNull Runnable actionToMeasure) {
-    assertTiming(message, expected, 4, actionToMeasure);
-  }
-
-  public static void assertTiming(String message, long expected, int attempts, @NotNull Runnable actionToMeasure) {
+    int attempts = 4;
     while (true) {
       attempts--;
       long start = System.currentTimeMillis();
@@ -187,8 +163,7 @@ public class TestUtils {
       try {
         assertTiming(message, expected, finish - start);
         break;
-      }
-      catch (AssertionError e) {
+      } catch (AssertionError e) {
         if (attempts == 0) throw e;
         System.gc();
         System.gc();

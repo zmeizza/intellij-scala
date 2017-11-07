@@ -12,9 +12,11 @@ import com.intellij.testFramework.LightPlatformTestCase;
 import com.intellij.util.IncorrectOperationException;
 import junit.framework.Test;
 import org.jetbrains.plugins.scala.lang.actions.ActionTestBase;
-import org.jetbrains.plugins.scala.util.TestUtils;
 import org.junit.runner.RunWith;
 import org.junit.runners.AllTests;
+
+import static com.intellij.testFramework.EditorTestUtil.CARET_TAG;
+import static org.jetbrains.plugins.scala.util.TestUtils.removeCaretMarker;
 
 /**
  * User: Alexander Podkhalyuzin
@@ -40,9 +42,9 @@ public class BackspaceActionTest extends ActionTestBase {
   private String processFile(final PsiFile file) throws IncorrectOperationException, InvalidDataException {
     String result;
     String fileText = file.getText();
-    int offset = fileText.indexOf(CARET_MARKER);
-    fileText = removeMarker(fileText);
-    myFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+    int offset = fileText.indexOf(CARET_TAG);
+    fileText = removeCaretMarker(fileText, offset);
+    myFile = createScalaFileFromText(fileText);
     fileEditorManager = FileEditorManager.getInstance(LightPlatformTestCase.getProject());
     myEditor = fileEditorManager.openTextEditor(new OpenFileDescriptor(myProject, myFile.getVirtualFile(), 0), false);
     assert myEditor != null;
@@ -59,7 +61,7 @@ public class BackspaceActionTest extends ActionTestBase {
       });
       offset = myEditor.getCaretModel().getOffset();
       result = myEditor.getDocument().getText();
-      result = result.substring(0, offset) + CARET_MARKER + result.substring(offset);
+      result = result.substring(0, offset) + CARET_TAG + result.substring(offset);
     } finally {
       fileEditorManager.closeFile(myFile.getVirtualFile());
       myEditor = null;
@@ -71,8 +73,7 @@ public class BackspaceActionTest extends ActionTestBase {
   public String transform(String testName, String[] data) {
     super.transform(testName, data);
 
-    String fileText = data[0];
-    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+    PsiFile psiFile = createScalaFileFrom(data);
     return processFile(psiFile);
   }
 

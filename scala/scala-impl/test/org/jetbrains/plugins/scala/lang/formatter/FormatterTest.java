@@ -24,11 +24,8 @@ import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.util.IncorrectOperationException;
 import junit.framework.Test;
 import org.jetbrains.plugins.scala.testcases.ScalaFileSetTestCase;
-import org.jetbrains.plugins.scala.util.TestUtils;
 import org.junit.runner.RunWith;
 import org.junit.runners.AllTests;
-
-import java.io.IOException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -54,8 +51,7 @@ public class FormatterTest extends ScalaFileSetTestCase {
   public String transform(String testName, String[] data) {
     super.transform(testName, data);
 
-    String fileText = data[0];
-    final PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
+    PsiFile psiFile = createScalaFileFrom(data);
     CommandProcessor.getInstance().executeCommand(myProject, new Runnable() {
       public void run() {
         ApplicationManager.getApplication().runWriteAction(new Runnable() {
@@ -72,7 +68,7 @@ public class FormatterTest extends ScalaFileSetTestCase {
     return psiFile.getText();
   }
 
-  public static Test suite() throws IOException {
+  public static Test suite() {
     return new FormatterTest();
   }
 

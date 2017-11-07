@@ -33,7 +33,6 @@ import org.jetbrains.plugins.scala.testcases.ScalaFileSetTestCase;
  */
 public abstract class ActionTestBase extends ScalaFileSetTestCase {
 
-  protected static final String CARET_MARKER = "<caret>";
   protected int myOffset;
 
   protected ActionTestBase(String... pathSegments) {
@@ -53,15 +52,6 @@ public abstract class ActionTestBase extends ScalaFileSetTestCase {
   protected myDataContext getDataContext(PsiFile file) throws InvalidDataException {
     return new myDataContext(file);
   }
-
-  /**
-   * Removes CARET_MARKER from file text
-   */
-  protected String removeMarker(String text) {
-    int index = text.indexOf(CARET_MARKER);
-    return text.substring(0, index) + text.substring(index + CARET_MARKER.length());
-  }
-
 
   /**
    * Performs specified action
