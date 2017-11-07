@@ -17,33 +17,21 @@ package org.jetbrains.plugins.scala.lang.parser;
 
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.impl.DebugUtil;
-import junit.framework.Test;
 import org.jetbrains.plugins.scala.testcases.ScalaFileSetTestCase;
 import org.jetbrains.plugins.scala.util.TestUtils;
-import org.junit.runner.RunWith;
-import org.junit.runners.AllTests;
 
-@RunWith(AllTests.class)
-public class ParserTest extends ScalaFileSetTestCase {
+public abstract class AbstractParserTest extends ScalaFileSetTestCase {
 
-  public ParserTest() {
-    super("parser", "data");
-  }
+    protected AbstractParserTest(String... pathSegments) {
+        super(pathSegments);
+    }
 
+    public String transform(String testName, String[] data) {
+        super.transform(testName, data);
 
-  public String transform(String testName, String[] data) {
-    super.transform(testName, data);
+        String fileText = data[0].replaceFirst("\n$", "");
+        PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
 
-    String fileText = data[0];
-    PsiFile psiFile = TestUtils.createPseudoPhysicalScalaFile(myProject, fileText);
-
-    return DebugUtil.psiToString(psiFile, false).replace(":" + psiFile.getName(), "");
-
-  }
-
-  public static Test suite() {
-    return new ParserTest();
-  }
+        return DebugUtil.psiToString(psiFile, false).replace(":" + psiFile.getName(), "");
+    }
 }
-
-
