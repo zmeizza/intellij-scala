@@ -1,7 +1,7 @@
 import java.io.File
 
 import Common._
-import com.dancingrobot84.sbtidea.tasks.{UpdateIdea => updateIdeaTask}
+import org.jetbrains.sbtidea.tasks.{UpdateIdea => updateIdeaTask}
 import sbt.Keys.{`package` => pack}
 import sbtide.Keys.ideSkipProject
 
@@ -9,7 +9,7 @@ import sbtide.Keys.ideSkipProject
 
 resolvers in ThisBuild ++=
   BintrayJetbrains.allResolvers :+
-  Resolver.typesafeIvyRepo("releases")
+    Resolver.typesafeIvyRepo("releases")
 
 resolvers in ThisBuild += Resolver.sonatypeRepo("snapshots")
 
@@ -42,70 +42,70 @@ lazy val scalaCommunity: sbt.Project =
 lazy val scalaImpl: sbt.Project =
   newProject("scala-impl", file("scala/scala-impl"))
     .dependsOn(compilerShared, decompiler % "test->test;compile->compile", runners % "test->test;compile->compile", macroAnnotations)
-  .enablePlugins(SbtIdeaPlugin, BuildInfoPlugin)
-  .settings(commonTestSettings(packagedPluginDir):_*)
-  .settings(
-    ideExcludedDirectories := Seq(baseDirectory.value / "testdata" / "projects"),
-    javacOptions in Global ++= Seq("-source", "1.8", "-target", "1.8"),
-    scalacOptions in Global ++= Seq("-target:jvm-1.8", "-deprecation"),
-    //scalacOptions in Global += "-Xmacro-settings:analyze-caches",
-    libraryDependencies ++= DependencyGroups.scalaCommunity,
-    unmanagedJars in Compile +=  file(System.getProperty("java.home")).getParentFile / "lib" / "tools.jar",
-    addCompilerPlugin(Dependencies.macroParadise),
-    ideaInternalPlugins := Seq(
-      "copyright",
-      "gradle",
-      "Groovy",
-      "IntelliLang",
-      "java-i18n",
-      "android",
-      "maven",
-      "junit",
-      "properties"
-    ),
-    ideaInternalPluginsJars :=
-      ideaInternalPluginsJars.value.filterNot(cp => cp.data.getName.contains("junit-jupiter-api"))
-    ,
-    Keys.aggregate.in(updateIdea) := false,
-    test in Test := test.in(Test).dependsOn(setUpTestEnvironment).value,
-    testOnly in Test := testOnly.in(Test).dependsOn(setUpTestEnvironment).evaluated,
-    buildInfoPackage := "org.jetbrains.plugins.scala.buildinfo",
-    buildInfoKeys := Seq(
-      name, version, scalaVersion, sbtVersion,
-      BuildInfoKey.constant("sbtLatestVersion", Versions.sbtVersion),
-      BuildInfoKey.constant("sbtStructureVersion", Versions.sbtStructureVersion),
-      BuildInfoKey.constant("sbtIdeaShellVersion", Versions.sbtIdeaShellVersion),
-      BuildInfoKey.constant("sbtLatest_0_13", Versions.Sbt.latest_0_13)
-    ),
-    fullClasspath in Test := deduplicatedClasspath((fullClasspath in Test).value, communityFullClasspath.value)
-  )
+    .enablePlugins(SbtIdeaPlugin, BuildInfoPlugin)
+    .settings(commonTestSettings(packagedPluginDir):_*)
+    .settings(
+      ideExcludedDirectories := Seq(baseDirectory.value / "testdata" / "projects"),
+      javacOptions in Global ++= Seq("-source", "1.8", "-target", "1.8"),
+      scalacOptions in Global ++= Seq("-target:jvm-1.8", "-deprecation"),
+      //scalacOptions in Global += "-Xmacro-settings:analyze-caches",
+      libraryDependencies ++= DependencyGroups.scalaCommunity,
+      unmanagedJars in Compile +=  file(System.getProperty("java.home")).getParentFile / "lib" / "tools.jar",
+      addCompilerPlugin(Dependencies.macroParadise),
+      ideaInternalPlugins := Seq(
+        "copyright",
+        "gradle",
+        "Groovy",
+        "IntelliLang",
+        "java-i18n",
+        "android",
+        "maven",
+        "junit",
+        "properties"
+      ),
+      ideaInternalPluginsJars :=
+        ideaInternalPluginsJars.value.filterNot(cp => cp.data.getName.contains("junit-jupiter-api"))
+      ,
+      Keys.aggregate.in(updateIdea) := false,
+      test in Test := test.in(Test).dependsOn(setUpTestEnvironment).value,
+      testOnly in Test := testOnly.in(Test).dependsOn(setUpTestEnvironment).evaluated,
+      buildInfoPackage := "org.jetbrains.plugins.scala.buildinfo",
+      buildInfoKeys := Seq(
+        name, version, scalaVersion, sbtVersion,
+        BuildInfoKey.constant("sbtLatestVersion", Versions.sbtVersion),
+        BuildInfoKey.constant("sbtStructureVersion", Versions.sbtStructureVersion),
+        BuildInfoKey.constant("sbtIdeaShellVersion", Versions.sbtIdeaShellVersion),
+        BuildInfoKey.constant("sbtLatest_0_13", Versions.Sbt.latest_0_13)
+      ),
+      fullClasspath in Test := deduplicatedClasspath((fullClasspath in Test).value, communityFullClasspath.value)
+    )
 
 lazy val compilerJps =
   newProject("compiler-jps", file("scala/compiler-jps"))
-  .dependsOn(compilerShared)
-  .enablePlugins(SbtIdeaPlugin)
-  .settings(
-    libraryDependencies ++=
-      Seq(Dependencies.nailgun) ++
-        DependencyGroups.sbtBundled
-  )
+    .dependsOn(compilerShared)
+    .enablePlugins(SbtIdeaPlugin)
+    .settings(
+      libraryDependencies ++=
+        Seq(Dependencies.nailgun) ++
+          DependencyGroups.sbtBundled
+    )
 
 lazy val compilerShared =
   newProject("compiler-shared", file("scala/compiler-shared"))
-  .enablePlugins(SbtIdeaPlugin)
-  .settings(libraryDependencies += Dependencies.nailgun)
+    .enablePlugins(SbtIdeaPlugin)
+    .settings(libraryDependencies += Dependencies.nailgun)
 
 lazy val runners =
   newProject("runners", file("scala/runners"))
-  .settings(
-    libraryDependencies ++= DependencyGroups.runners,
-    // WORKAROUND fixes build error in sbt 0.13.12+ analogously to https://github.com/scala/scala/pull/5386/
-    ivyScala ~= (_ map (_ copy (overrideScalaVersion = false)))
-  )
+    .settings(
+      libraryDependencies ++= DependencyGroups.runners,
+      // WORKAROUND fixes build error in sbt 0.13.12+ analogously to https://github.com/scala/scala/pull/5386/
+      scalaModuleInfo := scalaModuleInfo.value.map(_.withOverrideScalaVersion(false))
+    )
 
 lazy val nailgunRunners =
-  newProject("nailgun", file("scala/nailgun"))
-  .dependsOn(runners)
+newProject("nailgun", file("scala/nailgun"))
+    .dependsOn(runners)
   .settings(libraryDependencies += Dependencies.nailgun)
 
 lazy val decompiler =
@@ -180,7 +180,7 @@ lazy val testJarsDownloader =
     libraryDependencies ++= DependencyGroups.testDownloader,
     libraryDependencies ++= DependencyGroups.mockSbtDownloader,
     libraryDependencies ++= DependencyGroups.testScalaLibraryDownloader,
-    dependencyOverrides ++= Set(
+    dependencyOverrides ++= Seq(
       "com.chuusai" % "shapeless_2.11" % "2.0.0"
     ),
     update := update.dependsOn(update.in(sbtLaunchTestDownloader)).value,
@@ -195,11 +195,6 @@ lazy val sbtLaunchTestDownloader =
     libraryDependencies ++= DependencyGroups.sbtLaunchTestDownloader,
     ideSkipProject := true
   )
-
-//lazy val jmhBenchmarks =
-//  newProject("benchmarks", file("scala/benchmarks"))
-//    .dependsOn(scalaImpl % "test->test")
-//    .enablePlugins(JmhPlugin)
 
 // Testing keys and settings
 import Common.TestCategory._
@@ -328,7 +323,7 @@ lazy val pluginPackagerCommunity =
       ) ++
         crossLibraries.map { lib =>
           Library(
-            lib.copy(name = Packaging.crossName(lib, scalaVersion.value)),
+            crossed(scalaVersion.value)(lib),
             s"lib/${lib.name}.jar"
           )
         }
@@ -344,6 +339,8 @@ lazy val pluginPackagerCommunity =
     },
     ideSkipProject := true
   )
+
+def crossed(scalaVersion: String): ModuleID => ModuleID = CrossVersion.apply(scalaVersion, Versions.Scala.binaryVersion(scalaVersion))
 
 
 lazy val pluginCompressorCommunity =

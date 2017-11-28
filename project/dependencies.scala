@@ -246,19 +246,6 @@ object DependencyGroups {
       sbtOrg % "main-settings" % v
     )
 
-  val sbt1CrossScala: CrossVersion = CrossVersion.fullMapped(_ => Scala.binary_2_12)
-//  def sbt100Libs(v:String): Seq[ModuleID] =
-//    // these are not cross-versioned
-//    Seq("sbt", "util-interface", "test-agent").map(lib => sbtOrg % lib % v) ++
-//    // this has separate versioning
-//    Seq(sbtOrg % "compiler-interface" % zincVersion) ++
-//    // all of these are published cross-versioned for scala 2.12
-//    Seq(
-//      "main","logic","collections","util-position","util-relation","actions","completion","io",
-//      "util-control","run","util-logging","task-system","tasks","util-cache",
-//      "testing","util-tracking","main-settings","command","protocol","core-macros", "librarymanagement-core"
-//    ).map(lib => (sbtOrg % lib % v).withCrossVersion(sbt1CrossScala))
-
   def sbt100Libs(v:String): Seq[ModuleID] = Seq(sbtOrg % "sbt" % v) // all the modules are transitive deps
 
   // required jars for MockSbt - it adds different versions to test module classpath
