@@ -5,7 +5,7 @@ object Versions {
   val scalaBinaryVersion: String = Scala.binary_2_12
   // ATTENTION: when updating sbtVersion also update versions in MockSbt_1_0
   val sbtVersion: String = Sbt.latest
-  val zincVersion = "1.0.3"
+  val zincVersion = "1.0.5"
   val ideaVersion = "173.3727.22"
   val sbtStructureVersion: String = "2017.2"
   val sbtIdeaShellVersion: String = "2017.2"
@@ -48,14 +48,14 @@ object Versions {
 
     val latest_0_12 = "0.12.4"
     val latest_0_13 = "0.13.16"
-    val latest_1_0 = "1.0.3"
+    val latest_1_0 = "1.0.4"
     val latest: String = latest_1_0
 
     // these need to be updated to correspond to the versions in sbt/project/Dependencies.scala
     // they are required for our tests. TODO: automatically update them based on sbt base version
     val latestIo = "1.0.2"
     val latestUtil = "1.0.2"
-    val latestLm = "1.0.3"
+    val latestLm = "1.0.4"
 
     def scalaVersion(v: String): String =
       if (v.startsWith(Sbt.binary_0_12)) Scala.binary_2_9
