@@ -42,6 +42,7 @@ import org.jetbrains.plugins.scala.lang.psi.types.result._
 import org.jetbrains.plugins.scala.lang.psi.types.{ScSubstitutor, ScType, ScTypeExt}
 import org.jetbrains.plugins.scala.lang.psi.{ElementScope, ScalaPsiElement, ScalaPsiUtil}
 import org.jetbrains.plugins.scala.project.ProjectContext
+
 import scala.collection.Seq
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable.ArrayBuffer
@@ -175,6 +176,16 @@ package object extensions {
     }
   }
 
+  implicit class ToNullSafe[+A >: Null](val a: A) extends AnyVal {
+    def nullSafe = NullSafe(a)
+  }
+
+  implicit class OptionToNullSafe[+A >: Null](val a: Option[A]) extends AnyVal {
+    //to handle Some(null) case and avoid wrapping of intermediate function results
+    //in chained map/flatMap calls
+    def toNullSafe = NullSafe(a.orNull)
+  }
+
   implicit class ObjectExt[T](val v: T) extends AnyVal {
     def toOption: Option[T] = Option(v)
 
@@ -182,10 +193,6 @@ package object extensions {
       if (classTag[E].runtimeClass.isInstance(v)) Some(v.asInstanceOf[E])
       else None
     }
-
-    def getOrElse[H >: T](default: H): H = if (v == null) default else v
-
-    def collectOption[B](pf: scala.PartialFunction[T, B]): Option[B] = Some(v).collect(pf)
   }
 
   implicit class OptionExt[T](val option: Option[T]) extends AnyVal {
@@ -206,7 +213,8 @@ package object extensions {
   }
 
   implicit class StringExt(val string: String) extends AnyVal {
-    def parenthesize(needParenthesis: Boolean): String =
+
+    def parenthesize(needParenthesis: Boolean = true): String =
       if (needParenthesis) s"($string)" else string
   }
 
@@ -245,7 +253,7 @@ package object extensions {
       node.findChildByType(elementType) != null
   }
 
-  implicit class PsiElementExt(val element: PsiElement) extends AnyVal {
+  implicit class PsiElementExt[E <: PsiElement](val element: E) extends AnyVal {
     def startOffsetInParent: Int =
       element match {
         case s: ScalaPsiElement => s.startOffsetInParent
@@ -380,6 +388,9 @@ package object extensions {
       val parent = element.getParent
       elements.foldRight(List.empty[PsiElement])(parent.addAfter(_, element) :: _)
     }
+
+    def createSmartPointer(implicit manager: SmartPointerManager = SmartPointerManager.getInstance(element.getProject)): SmartPsiElementPointer[E] =
+      manager.createSmartPsiElementPointer(element)
   }
 
   implicit class PsiTypeExt(val `type`: PsiType) extends AnyVal {
@@ -466,8 +477,8 @@ package object extensions {
       def concreteClassFor(typedDef: ScTypedDefinition): Option[PsiClass] = {
         if (typedDef.isAbstractMember) return None
         clazz match {
-          case wrapper: PsiClassWrapper if wrapper.definition.isInstanceOf[ScObject] =>
-            return Some(wrapper) //this is static case, when containing class should be wrapper
+          case PsiClassWrapper(_: ScObject) =>
+            return Some(clazz) //this is static case, when containing class should be wrapper
           case _ =>
         }
 
