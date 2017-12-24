@@ -42,43 +42,42 @@ lazy val scalaCommunity: sbt.Project =
 lazy val scalaImpl: sbt.Project =
   newProject("scala-impl", file("scala/scala-impl"))
     .dependsOn(compilerShared, decompiler % "test->test;compile->compile", runners % "test->test;compile->compile", macroAnnotations)
-    .enablePlugins(SbtIdeaPlugin, BuildInfoPlugin)
-    .settings(commonTestSettings(packagedPluginDir):_*)
-    .settings(
-      ideExcludedDirectories := Seq(baseDirectory.value / "testdata" / "projects"),
-      javacOptions in Global ++= Seq("-source", "1.8", "-target", "1.8"),
-      scalacOptions in Global ++= Seq("-target:jvm-1.8", "-deprecation"),
-      //scalacOptions in Global += "-Xmacro-settings:analyze-caches",
-      libraryDependencies ++= DependencyGroups.scalaCommunity,
-      unmanagedJars in Compile +=  file(System.getProperty("java.home")).getParentFile / "lib" / "tools.jar",
-      addCompilerPlugin(Dependencies.macroParadise),
-      ideaInternalPlugins := Seq(
-        "copyright",
-        "gradle",
-        "Groovy",
-        "IntelliLang",
-        "java-i18n",
-        "android",
-        "maven",
-        "junit",
-        "properties"
-      ),
-      ideaInternalPluginsJars :=
-        ideaInternalPluginsJars.value.filterNot(cp => cp.data.getName.contains("junit-jupiter-api"))
-      ,
-      Keys.aggregate.in(updateIdea) := false,
-      test in Test := test.in(Test).dependsOn(setUpTestEnvironment).value,
-      testOnly in Test := testOnly.in(Test).dependsOn(setUpTestEnvironment).evaluated,
-      buildInfoPackage := "org.jetbrains.plugins.scala.buildinfo",
-      buildInfoKeys := Seq(
-        name, version, scalaVersion, sbtVersion,
-        BuildInfoKey.constant("sbtLatestVersion", Versions.sbtVersion),
-        BuildInfoKey.constant("sbtStructureVersion", Versions.sbtStructureVersion),
-        BuildInfoKey.constant("sbtIdeaShellVersion", Versions.sbtIdeaShellVersion),
-        BuildInfoKey.constant("sbtLatest_0_13", Versions.Sbt.latest_0_13)
-      ),
-      fullClasspath in Test := deduplicatedClasspath((fullClasspath in Test).value, communityFullClasspath.value)
-    )
+  .enablePlugins(SbtIdeaPlugin, BuildInfoPlugin)
+  .settings(commonTestSettings(packagedPluginDir):_*)
+  .settings(
+    ideExcludedDirectories := Seq(baseDirectory.value / "testdata" / "projects"),
+    javacOptions in Global ++= Seq("-source", "1.8", "-target", "1.8"),
+    scalacOptions in Global ++= Seq("-target:jvm-1.8", "-deprecation"),
+    //scalacOptions in Global += "-Xmacro-settings:analyze-caches",
+    libraryDependencies ++= DependencyGroups.scalaCommunity,
+    unmanagedJars in Compile +=  file(System.getProperty("java.home")).getParentFile / "lib" / "tools.jar",
+    addCompilerPlugin(Dependencies.macroParadise),
+    ideaInternalPlugins := Seq(
+      "copyright",
+      "gradle",
+      "Groovy",
+      "IntelliLang",
+      "java-i18n",
+      "android",
+      "maven",
+      "junit",
+      "properties"
+    ),
+    ideaInternalPluginsJars :=
+      ideaInternalPluginsJars.value.filterNot(cp => cp.data.getName.contains("junit-jupiter-api"))
+    ,
+    Keys.aggregate.in(updateIdea) := false,
+
+    buildInfoPackage := "org.jetbrains.plugins.scala.buildinfo",
+    buildInfoKeys := Seq(
+      name, version, scalaVersion, sbtVersion,
+      BuildInfoKey.constant("sbtLatestVersion", Versions.sbtVersion),
+      BuildInfoKey.constant("sbtStructureVersion", Versions.sbtStructureVersion),
+      BuildInfoKey.constant("sbtIdeaShellVersion", Versions.sbtIdeaShellVersion),
+      BuildInfoKey.constant("sbtLatest_0_13", Versions.Sbt.latest_0_13)
+    ),
+    fullClasspath in Test := deduplicatedClasspath((fullClasspath in Test).value, communityFullClasspath.value)
+  )
 
 lazy val compilerJps =
   newProject("compiler-jps", file("scala/compiler-jps"))
@@ -168,34 +167,6 @@ lazy val sbtRuntimeDependencies =
     ideSkipProject := true
   )
 
-lazy val testJarsDownloader =
-  newProject("testJarsDownloader", file("target/tools/test-jars-downloader"))
-  .settings(
-    conflictManager := ConflictManager.all,
-    conflictWarning := ConflictWarning.disable,
-    resolvers ++= Seq(
-      "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
-      "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
-    ),
-    libraryDependencies ++= DependencyGroups.testDownloader,
-    libraryDependencies ++= DependencyGroups.mockSbtDownloader,
-    libraryDependencies ++= DependencyGroups.testScalaLibraryDownloader,
-    dependencyOverrides ++= Seq(
-      "com.chuusai" % "shapeless_2.11" % "2.0.0"
-    ),
-    update := update.dependsOn(update.in(sbtLaunchTestDownloader)).value,
-    ideSkipProject := true
-  )
-
-lazy val sbtLaunchTestDownloader =
-  newProject("sbtLaunchTestDownloader", file("target/tools/sbt-launch-test-downloader"))
-  .settings(
-    autoScalaLibrary := false,
-    conflictManager := ConflictManager.all,
-    libraryDependencies ++= DependencyGroups.sbtLaunchTestDownloader,
-    ideSkipProject := true
-  )
-
 // Testing keys and settings
 import Common.TestCategory._
 
@@ -218,13 +189,6 @@ addCommandAlias("runFastTests", s"testOnly -- $fastTestOptions")
 addCommandAlias("runFastTestsComIntelliJ", s"testOnly com.intellij.* -- $fastTestOptions")
 addCommandAlias("runFastTestsOrgJetbrains", s"testOnly org.jetbrains.* -- $fastTestOptions")
 addCommandAlias("runFastTestsScala", s"testOnly scala.* -- $fastTestOptions")
-
-
-lazy val setUpTestEnvironment = taskKey[Unit]("Set up proper environment for running tests")
-
-setUpTestEnvironment in ThisBuild := {
-  update.in(testJarsDownloader).value
-}
 
 lazy val cleanUpTestEnvironment = taskKey[Unit]("Clean up IDEA test system and config directories")
 

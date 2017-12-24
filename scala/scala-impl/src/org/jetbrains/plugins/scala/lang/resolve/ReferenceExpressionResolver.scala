@@ -6,7 +6,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi._
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.plugins.scala.caches.CachesUtil
-import org.jetbrains.plugins.scala.extensions.{PsiMethodExt, PsiNamedElementExt}
+import org.jetbrains.plugins.scala.extensions.{PsiElementExt, PsiMethodExt, PsiNamedElementExt}
 import org.jetbrains.plugins.scala.lang.dependency.Dependency.DependencyProcessor
 import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil
 import org.jetbrains.plugins.scala.lang.psi.api.base.types.{ScSelfTypeElement, ScTypeElement}
@@ -32,7 +32,6 @@ import org.jetbrains.plugins.scala.lang.refactoring.util.ScalaNamesUtil
 import org.jetbrains.plugins.scala.lang.resolve.processor.DynamicResolveProcessor._
 import org.jetbrains.plugins.scala.lang.resolve.processor._
 import org.jetbrains.plugins.scala.project.ProjectContext
-
 import scala.annotation.tailrec
 import scala.collection.Set
 import scala.collection.mutable.ArrayBuffer
@@ -249,15 +248,13 @@ class ReferenceExpressionResolver(implicit projectContext: ProjectContext) {
       val refName = ref.refName
       for (variant <- callReference.multiResolve(false)) {
         def processResult(r: ScalaResolveResult) = r match {
-          case ScalaResolveResult(fun: ScFunction, _) if r.isDynamic &&
-            fun.name == APPLY_DYNAMIC_NAMED =>
+          case ScalaResolveResult(fun: ScFunction, _) if DynamicResolveProcessor.isApplyDynamicNamed(r) =>
             //add synthetic parameter
             if (!processor.isInstanceOf[CompletionProcessor]) {
               val state: ResolveState = ResolveState.initial().put(CachesUtil.NAMED_PARAM_KEY, java.lang.Boolean.TRUE)
               processor.execute(createParameterFromText(refName + ": Any"), state)
             }
-          case ScalaResolveResult(_, _) if call.applyOrUpdateElement.exists(_.isDynamic) &&
-            call.applyOrUpdateElement.get.name == APPLY_DYNAMIC_NAMED =>
+          case ScalaResolveResult(_, _) if call.applyOrUpdateElement.exists(DynamicResolveProcessor.isApplyDynamicNamed) =>
             //add synthetic parameter
             if (!processor.isInstanceOf[CompletionProcessor]) {
               val state: ResolveState = ResolveState.initial().put(CachesUtil.NAMED_PARAM_KEY, java.lang.Boolean.TRUE)
@@ -542,10 +539,7 @@ class ReferenceExpressionResolver(implicit projectContext: ProjectContext) {
     }
 
     def processDynamic(`type`: ScType, expression: ScExpression, processor: MethodResolveProcessor): BaseProcessor = {
-      val maybeDynamicType = ref.elementScope.getCachedClass("scala.Dynamic")
-        .map(ScDesignatorType(_))
-
-      if (!maybeDynamicType.exists(`type`.conforms)) return processor
+      if (!conformsToDynamic(`type`, ref.resolveScope)) return processor
 
       val expressionsOrContext = ref.getContext match {
         case postfix: ScPostfixExpr => Left(postfix)

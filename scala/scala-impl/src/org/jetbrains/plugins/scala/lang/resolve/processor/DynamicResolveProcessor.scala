@@ -7,8 +7,11 @@ import org.jetbrains.plugins.scala.lang.psi.types.ScType
 import org.jetbrains.plugins.scala.lang.psi.types.api.designator.ScDesignatorType
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{ScMethodType, ScTypePolymorphicType}
 import org.jetbrains.plugins.scala.lang.resolve.DynamicTypeReferenceResolver.getAllResolveResult
-
 import scala.collection.JavaConverters._
+
+import com.intellij.psi.search.GlobalSearchScope
+import org.jetbrains.plugins.scala.lang.psi.ElementScope
+import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
 
 object DynamicResolveProcessor {
 
@@ -35,22 +38,24 @@ object DynamicResolveProcessor {
   }
 
   def isDynamicReference(reference: ScReferenceExpression): Boolean = {
-
     def qualifierType() = reference.qualifier
       .flatMap(_.getNonValueType().toOption)
 
-    def cachedClassType() =
-      ScalaPsiManager.instance(reference.getProject)
-        .getCachedClass(reference.getResolveScope, "scala.Dynamic")
-        .map(ScDesignatorType(_))
+    qualifierType().exists(conformsToDynamic(_, reference.getResolveScope))
+  }
 
-    qualifierType().zip(cachedClassType()).exists {
-      case (qualifierType, classType) => qualifierType.conforms(classType)
-    }
+  def conformsToDynamic(tp: ScType, scope: GlobalSearchScope): Boolean = {
+    val dynamicType = ElementScope(tp.projectContext, scope)
+      .getCachedClass("scala.Dynamic")
+      .map(ScDesignatorType(_))
+    dynamicType.exists(tp.conforms)
   }
 
   def resolveDynamic(reference: ScReferenceExpression): Seq[ResolveResult] = {
     getAllResolveResult(reference).asScala
   }
+
+  def isApplyDynamicNamed(r: ScalaResolveResult): Boolean =
+    r.isDynamic && r.name == APPLY_DYNAMIC_NAMED
 }
 
