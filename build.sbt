@@ -204,6 +204,8 @@ concurrentRestrictions in Global := Seq(
 communityFullClasspath in ThisBuild :=
   deduplicatedClasspath(fullClasspath.in(scalaCommunity, Test).value, fullClasspath.in(scalaCommunity, Compile).value)
 
+fullClasspath in ThisBuild := (communityFullClasspath in ThisBuild).value
+
 // Packaging projects
 
 lazy val packagedPluginDir = settingKey[File]("Path to packaged, but not yet compressed plugin")

@@ -39,7 +39,7 @@ object Packaging {
   }
 
   def compressPackagedPlugin(source: File, destination: File): Unit =
-    IO.zip((source.getParentFile.allPaths) pair (relativeTo(source.getParentFile), false), destination)
+    IO.zip(source.getParentFile.allPaths pair (relativeTo(source.getParentFile), false), destination)
 
   import PackageEntry._
 
