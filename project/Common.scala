@@ -1,7 +1,10 @@
+import java.io.File
+
+import org.jetbrains.sbtidea.Keys.ideaMainJars
+import sbt.Keys.{`package` => pack, _}
 import sbt._
-import Keys._
-import scala.language.implicitConversions
-import scala.language.postfixOps
+
+import scala.language.{implicitConversions, postfixOps}
 
 object Common {
   lazy val communityFullClasspath: TaskKey[Classpath] =
@@ -12,6 +15,9 @@ object Common {
 
   lazy val testSystemDir: SettingKey[File] =
     settingKey[File]("IDEA's system directory for tests")
+
+  lazy val packagedPluginDir =
+    settingKey[File]("Path to packaged, but not yet compressed plugin")
 
   def newProject(projectName: String, base: File): Project =
     Project(projectName, base).settings(
@@ -44,7 +50,8 @@ object Common {
     val scalacTests: String = cat("ScalacTests")
   }
 
-  lazy val homePrefix = sys.props.get("tc.idea.prefix").map(new File(_)).getOrElse(Path.userHome)
+  lazy val homePrefix: File =
+    sys.props.get("tc.idea.prefix").map(new File(_)).getOrElse(Path.userHome)
 
   def ivyHomeDir: File =
     Option(System.getProperty("sbt.ivy.home")).fold(homePrefix / ".ivy2")(file)
@@ -66,5 +73,31 @@ object Common {
 //      ,"-agentlib:jdwp=transport=dt_socket,server=y,address=5005,suspend=y"
     ),
     envVars in Test += "NO_FS_ROOTS_ACCESS_CHECK" -> "yes"
+  )
+
+  def runnerSettings(mainProject: ProjectReference, packagerProject: ProjectReference): Seq[Def.Setting[_]] = Seq(
+    autoScalaLibrary := false,
+    unmanagedJars in Compile := ideaMainJars.in(mainProject).value,
+    unmanagedJars in Compile += file(System.getProperty("java.home")).getParentFile / "lib" / "tools.jar",
+    // run configuration
+    fork in run := true,
+    mainClass in (Compile, run) := Some("com.intellij.idea.Main"),
+    javaOptions in run ++= Seq(
+      "-Xmx800m",
+      "-XX:ReservedCodeCacheSize=64m",
+      "-XX:+HeapDumpOnOutOfMemoryError",
+      "-ea",
+      "-Didea.is.internal=true",
+      "-Didea.debug.mode=true",
+      s"-Didea.system.path=${homePrefix.getCanonicalPath}/.ScalaPluginIC/system",
+      s"-Didea.config.path=${homePrefix.getCanonicalPath}/.ScalaPluginIC/config",
+      "-Dapple.laf.useScreenMenuBar=true",
+      s"-Dplugin.path=${packagedPluginDir.value}",
+      "-Didea.ProcessCanceledException=disabled",
+      "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"
+    ),
+    products in Compile := {
+      (products in Compile).value :+ (pack in packagerProject).value
+    }
   )
 }

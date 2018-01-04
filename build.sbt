@@ -129,32 +129,7 @@ lazy val cbt =
 lazy val ideaRunner =
   newProject("idea-runner", file("target/tools/idea-runner"))
   .dependsOn(Seq(compilerShared, runners, scalaCommunity, compilerJps, nailgunRunners, decompiler).map(_ % Provided): _*)
-  .settings(
-    autoScalaLibrary := false,
-    unmanagedJars in Compile := ideaMainJars.in(scalaImpl).value,
-    unmanagedJars in Compile += file(System.getProperty("java.home")).getParentFile / "lib" / "tools.jar",
-    // run configuration
-    fork in run := true,
-    mainClass in (Compile, run) := Some("com.intellij.idea.Main"),
-    javaOptions in run ++= Seq(
-      "-Xmx800m",
-      "-XX:ReservedCodeCacheSize=64m",
-      "-XX:MaxPermSize=250m",
-      "-XX:+HeapDumpOnOutOfMemoryError",
-      "-ea",
-      "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005",
-      "-Didea.is.internal=true",
-      "-Didea.debug.mode=true",
-      s"-Didea.system.path=${homePrefix.getCanonicalPath}/.ScalaPluginIC/system",
-      s"-Didea.config.path=${homePrefix.getCanonicalPath}/.ScalaPluginIC/config",
-      "-Dapple.laf.useScreenMenuBar=true",
-      s"-Dplugin.path=${packagedPluginDir.value}",
-      "-Didea.ProcessCanceledException=disabled"
-    ),
-    products in Compile := {
-      (products in Compile).value :+ (pack in pluginPackagerCommunity).value
-    }
-  )
+  .settings(runnerSettings(scalaImpl, pluginPackagerCommunity))
 
 lazy val sbtRuntimeDependencies =
   (project in file("target/tools/sbt-runtime-dependencies"))
@@ -207,8 +182,6 @@ communityFullClasspath in ThisBuild :=
 fullClasspath in ThisBuild := (communityFullClasspath in ThisBuild).value
 
 // Packaging projects
-
-lazy val packagedPluginDir = settingKey[File]("Path to packaged, but not yet compressed plugin")
 
 packagedPluginDir in ThisBuild := baseDirectory.in(ThisBuild).value / "target" / "plugin" / "Scala"
 
