@@ -8,7 +8,6 @@ import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil.processTypeForUpdateOrA
 import org.jetbrains.plugins.scala.lang.psi.api.InferUtil
 import org.jetbrains.plugins.scala.lang.psi.api.InferUtil.SafeCheckException
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
-import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFun, ScFunction}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.usages.ImportUsed
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.ScTrait
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiManager
@@ -19,8 +18,10 @@ import org.jetbrains.plugins.scala.lang.psi.types.api.{Any, FunctionType, Nothin
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{Parameter, ScMethodType, ScTypePolymorphicType}
 import org.jetbrains.plugins.scala.lang.psi.types.result.TypeResult
 import org.jetbrains.plugins.scala.lang.psi.types.{ApplicabilityProblem, Compatibility, DoesNotTakeParameters, ScSubstitutor, ScType, ScalaType}
+import org.jetbrains.plugins.scala.lang.resolve.MethodTypeProvider._
+import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
 import org.jetbrains.plugins.scala.lang.resolve.processor.DynamicResolveProcessor
-import org.jetbrains.plugins.scala.lang.resolve.{ResolveUtils, ScalaResolveResult}
+import org.jetbrains.plugins.scala.lang.resolve.processor.DynamicResolveProcessor._
 import org.jetbrains.plugins.scala.macroAnnotations.{Cached, ModCount}
 import org.jetbrains.plugins.scala.project.ProjectContext
 
@@ -83,7 +84,7 @@ abstract class MethodInvocationImpl(node: ASTNode) extends ScExpressionImplBase(
           else processedType
 
         val isNamedDynamic: Boolean =
-          updateApplyData.applyOrUpdateElem.exists(DynamicResolveProcessor.isApplyDynamicNamed)
+          updateApplyData.applyOrUpdateElem.exists(isApplyDynamicNamed)
 
         checkApplication(updatedProcessedType, args(includeUpdateCall = true, isNamedDynamic), withExpectedType)
           .map(_.withApplyUpdate(updateApplyData))
@@ -210,7 +211,7 @@ abstract class MethodInvocationImpl(node: ASTNode) extends ScExpressionImplBase(
   private def resolvesToApplyDynamicNamed: Boolean = {
     getEffectiveInvokedExpr match {
       case ref: ScReferenceExpression =>
-        ref.bind().exists(DynamicResolveProcessor.isApplyDynamicNamed)
+        ref.bind().exists(isApplyDynamicNamed)
       case _ => false
     }
   }
@@ -225,22 +226,10 @@ object MethodInvocationImpl {
       val candidates: Array[ScalaResolveResult] = processTypeForUpdateOrApplyCandidates(call, tp, isShape, isDynamic = withDynamic)
       PartialFunction.condOpt(candidates) {
         case Array(r@ScalaResolveResult(fun: PsiMethod, s: ScSubstitutor)) =>
-          def update(tp: ScType): ScType = {
-            if (r.isDynamic) DynamicResolveProcessor.getDynamicReturn(tp)
-            else tp
-          }
 
-          val res = fun match {
-            case fun: ScFun =>
-              val scType = update(s.subst(fun.polymorphicType))
-              InvocationData.Success.fromApplyUpdate(scType, Some(r))
-            case fun: ScFunction =>
-              val scType = update(s.subst(fun.polymorphicType()))
-              InvocationData.Success.fromApplyUpdate(scType, Some(r))
-            case meth: PsiMethod =>
-              val scType = update(ResolveUtils.javaPolymorphicType(meth, s, call.resolveScope))
-              InvocationData.Success.fromApplyUpdate(scType, Some(r))
-          }
+          val polyType = fun.polymorphicType(s).updateTypeOfDynamicCall(r.isDynamic)
+          val res = InvocationData.Success.fromApplyUpdate(polyType, Some(r))
+
           call.getInvokedExpr.getNonValueType() match {
             case Right(ScTypePolymorphicType(_, typeParams)) =>
               val fixedType = res.inferredType match {
