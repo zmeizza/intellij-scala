@@ -456,9 +456,13 @@ object ScSimpleTypeElementImpl {
 
   private def fromSuperReference(superReference: ScSuperReference,
                                  function: ScTemplateDefinition => ScType)
-                                (path: ScPathElement = superReference) =
-    fromTemplate(superReference.drvTemplate,
+                                (path: ScPathElement = superReference) = {
+    fromTemplate(superReference.reference.map(_.resolve).map {
+      case t: ScTemplateDefinition => Some(t)
+      case _ => None
+    }.getOrElse(superReference.drvTemplate),
       "Cannot find enclosing container",
       path,
       function)
+  }
 }

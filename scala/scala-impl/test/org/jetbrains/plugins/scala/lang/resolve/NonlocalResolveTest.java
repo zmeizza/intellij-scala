@@ -183,4 +183,9 @@ public class NonlocalResolveTest extends ScalaResolveTestCase{
     PsiReference ref = findReferenceAtCaret();
     assertNull(ref.resolve());
   }
+
+  public void testSuperQualifier() throws Exception {
+    PsiReference ref = findReferenceAtCaret();
+    assertNotNull(ref.resolve());
+  }
 }

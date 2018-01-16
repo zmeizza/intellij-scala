@@ -67,7 +67,6 @@ class FailedScalacTests extends FailedScalacTestsBase {
 
   //Delete test method and move corresponding .scala file or directory to testdata/scalacTests/pos/ after test passes
 
-  def test_t4365(): Unit = doTest()
   def test_t5545(): Unit = doTest()
   def test_t6169(): Unit = doTest()
   def test_t7232c(): Unit = doTest()

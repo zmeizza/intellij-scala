@@ -48,8 +48,16 @@ class ResolveProcessor(override val kinds: Set[ResolveTargets.Value],
   def getPlace: PsiElement = ref
 
   val isThisOrSuperResolve = ref.getParent match {
-    case _: ScThisReference | _: ScSuperReference => true
+    case _: ScThisReference => true
+    case _: ScSuperReference
+      if !ScalaPsiUtil.isInSqBrackets(ref) => true
     case _ => false
+  }
+
+  private def notSuperObj(clazz: PsiClass): Boolean = (ref.getParent, clazz) match {
+    case (_: ScSuperReference, _: ScObject) if ScalaPsiUtil.isInSqBrackets(ref) =>
+      false
+    case _ => !isThisOrSuperResolve
   }
 
   def emptyResultSet: Boolean = candidatesSet.isEmpty || levelSet.isEmpty
@@ -136,7 +144,7 @@ class ResolveProcessor(override val kinds: Set[ResolveTargets.Value],
           val resolveResult: ScalaResolveResult =
             new ScalaResolveResult(ScPackageImpl(pack), getSubst(state), getImports(state), nameShadow, isAccessible = accessible)
           addResult(resolveResult)
-        case clazz: PsiClass if !isThisOrSuperResolve || PsiTreeUtil.isContextAncestor(clazz, ref, true) =>
+        case clazz: PsiClass if notSuperObj(clazz) || PsiTreeUtil.isContextAncestor(clazz, ref, true) =>
           addResult(new ScalaResolveResult(named, getSubst(state),
             getImports(state), nameShadow, boundClass = getBoundClass(state), fromType = getFromType(state), isAccessible = accessible))
         case _: PsiClass => //do nothing, it's wrong class or object

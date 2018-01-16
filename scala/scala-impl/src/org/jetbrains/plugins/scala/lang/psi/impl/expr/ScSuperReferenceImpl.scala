@@ -5,17 +5,16 @@ package impl
 package expr
 
 import com.intellij.lang.ASTNode
-import com.intellij.openapi.util.TextRange
 import com.intellij.psi._
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.util.IncorrectOperationException
 import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.lexer.ScalaTokenTypes
+import org.jetbrains.plugins.scala.lang.parser.ScalaElementTypes
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaFile
+import org.jetbrains.plugins.scala.lang.psi.api.base.ScStableCodeReferenceElement
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.templates.ScExtendsBlock
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScObject, ScTemplateDefinition, ScTypeDefinition}
-import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiElementFactory.createIdentifier
 import org.jetbrains.plugins.scala.lang.psi.types.result._
 import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScTypeExt}
 import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
@@ -62,81 +61,21 @@ class ScSuperReferenceImpl(node: ASTNode) extends ScExpressionImplBase(node) wit
     case None => ScalaPsiUtil.drvTemplate(this)
   }
 
-
+  def staticSuperPsi: Option[ScStableCodeReferenceElement] = {
+    Option(findLastChildByType[ScStableCodeReferenceElement](ScalaElementTypes.REFERENCE)).filter(ScalaPsiUtil.isInSqBrackets)
+  }
   def staticSuper: Option[ScType] = {
-    val id = findChildByType[PsiElement](ScalaTokenTypes.tIDENTIFIER)
-    if (id == null) None else findSuper(id)
+    staticSuperPsi.flatMap(_.resolve() match {
+      case t: Typeable =>
+        t.`type`().toOption
+      case _ =>
+        None
+    })
   }
 
-  def staticSuperName = Option(findChildByType[PsiElement](ScalaTokenTypes.tIDENTIFIER)).map(_.getText).getOrElse("")
+  def staticSuperName: String = Option(findChildByType[PsiElement](ScalaTokenTypes.tIDENTIFIER)).map(_.getText).getOrElse("")
 
-  override def getReference = {
-    val id = findChildByType[PsiElement](ScalaTokenTypes.tIDENTIFIER)
-    if (id == null) null else new PsiReference {
-      def getElement: ScSuperReferenceImpl = ScSuperReferenceImpl.this
-
-      def getRangeInElement: TextRange = new TextRange(0, id.getTextLength).shiftRight(id.getStartOffsetInParent)
-
-      def getCanonicalText: String = resolve match {
-        case c: PsiClass => c.qualifiedName
-        case _ => null
-      }
-
-      def isSoft: Boolean = false
-
-      def handleElementRename(newElementName: String): ScSuperReferenceImpl = doRename(newElementName)
-
-      def bindToElement(e: PsiElement): ScSuperReferenceImpl = e match {
-        case c: PsiClass => doRename(c.name)
-        case _ => throw new IncorrectOperationException("cannot bind to anything but class")
-      }
-
-      private def doRename(newName: String) = {
-        val parent = id.getNode.getTreeParent
-        parent.replaceChild(id.getNode, createIdentifier(newName))
-        ScSuperReferenceImpl.this
-      }
-
-      def isReferenceTo(element: PsiElement): Boolean = element match {
-        case c: PsiClass => c.name == id.getText && resolve == c
-        case _ => false
-      }
-
-      def resolve: PsiClass = {
-        def resolveNoHack: PsiClass = {
-          findSuper(id) match {
-            case Some(t) => t.extractClass match {
-              case Some(c) => c
-              case None => null
-            }
-            case _ => null
-          }
-        }
-
-        ScalaPsiUtil.fileContext(id) match {
-          case file: ScalaFile if file.isCompiled =>
-            val next = id.getNode.getTreeNext
-            if (next == null) resolveNoHack
-            else next.getPsi match {
-              case comment: PsiComment =>
-                val commentText = comment.getText
-                val path = commentText.substring(2, commentText.length - 2)
-                val classes = ScalaPsiManager.instance(getProject).getCachedClasses(getResolveScope, path)
-                if (classes.length == 1) classes(0)
-                else classes.find(!_.isInstanceOf[ScObject]).getOrElse(resolveNoHack)
-              case _ => resolveNoHack
-            }
-          case _ => resolveNoHack
-        }
-      }
-
-      def getVariants: Array[Object] = superTypes match {
-        case None => Array.emptyObjectArray
-        case Some(supers) =>
-          supers.flatMap(_.extractClass).toArray
-      }
-    }
-  }
+  override def getReference = null
 
   def findSuper(id: PsiElement): Option[ScType] = superTypes match {
     case None => None
