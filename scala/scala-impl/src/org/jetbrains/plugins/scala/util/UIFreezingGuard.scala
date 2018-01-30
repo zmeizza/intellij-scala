@@ -59,9 +59,13 @@ object UIFreezingGuard {
         if (!ApplicationManager.getApplication.isWriteAccessAllowed && !progressManager.hasProgressIndicator) {
 
           if (hasPendingUserInput)
-            throw UnfreezeException
+            throw new UnfreezeException
 
-          progressManager.runProcess(body, progress)
+          try progressManager.runProcess(body, progress)
+          catch {
+            case LightUnfreezeException => throw new UnfreezeException()
+          }
+
         }
         else
           body
@@ -79,7 +83,7 @@ object UIFreezingGuard {
     else {
       try body
       catch {
-        case UnfreezeException => default
+        case _: UnfreezeException => default
       }
     }
   }
@@ -145,7 +149,7 @@ object UIFreezingGuard {
     //to avoid long stacktraces in log and keep write actions
     def checkCanceled(): Unit = {
       if (isCanceled && !ApplicationManager.getApplication.isWriteAccessAllowed)
-        throw UnfreezeException
+        throw LightUnfreezeException
     }
 
     //EmptyProgressIndicator is good enough, but it has final `checkCanceled()` method
@@ -172,11 +176,13 @@ object UIFreezingGuard {
     def isShowing: Boolean = delegate.isShowing
   }
 
-  object UnfreezeException extends ProcessCanceledException with NoStackTrace {
+  private class UnfreezeException extends ProcessCanceledException {
     override def getMessage: String = "Long scala calculation on UI thread canceled"
   }
 
-  class TimeoutException extends ProcessCanceledException with NoStackTrace {
+  private object LightUnfreezeException extends UnfreezeException with NoStackTrace
+
+  private class TimeoutException extends ProcessCanceledException with NoStackTrace {
     override def getMessage: String = "Computation cancelled with timeout"
   }
 }
