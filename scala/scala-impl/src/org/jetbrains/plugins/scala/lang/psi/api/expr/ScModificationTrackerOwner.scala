@@ -48,7 +48,7 @@ trait ScModificationTrackerOwner extends ScalaPsiElement with PsiModifiableCodeB
 
   def isValidModificationTrackerOwner: Boolean = {
     getContext match {
-      case f: ScFunction => f.returnTypeElement match {
+      case f: ScFunction => f.typeElement match {
         case Some(_) =>  true
         case None if !f.hasAssign => true
         case _ => false

@@ -244,19 +244,19 @@ class ExpectedTypesImpl extends ExpectedTypes {
       case v @ ScPatternDefinition.expr(expr) if expr == sameInContext =>
         v.typeElement match {
           case Some(te) => Array((v.`type`().getOrAny, Some(te)))
-          case _ => Array.empty
+          case _ => v.getInheritedReturnType.map((_, None)).toArray
         }
       case v @ ScVariableDefinition.expr(expr) if expr == sameInContext =>
         v.typeElement match {
           case Some(te) => Array((v.`type`().getOrAny, Some(te)))
-          case _ => Array.empty
+          case _ => v.getInheritedReturnType.map((_, None)).toArray
         }
       //SLS[4.6]
       case v: ScFunctionDefinition if (v.body match {
         case None => false
         case Some(b) => b == sameInContext
       }) =>
-        v.returnTypeElement match {
+        v.typeElement match {
           case Some(te) => v.returnType.toOption.map(x => (x, Some(te))).toArray
           case None if !v.hasAssign => Array((api.Unit, None))
           case _ => v.getInheritedReturnType.map((_, None)).toArray
@@ -270,7 +270,7 @@ class ExpectedTypesImpl extends ExpectedTypes {
       case ret: ScReturnStmt =>
         val fun: ScFunction = PsiTreeUtil.getContextOfType(ret, true, classOf[ScFunction])
         if (fun == null) return Array.empty
-        fun.returnTypeElement match {
+        fun.typeElement match {
           case Some(rte: ScTypeElement) =>
             fun.returnType match {
               case Right(rt) => Array((rt, Some(rte)))

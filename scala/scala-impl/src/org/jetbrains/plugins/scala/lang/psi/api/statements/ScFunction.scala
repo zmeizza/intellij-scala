@@ -54,7 +54,7 @@ import org.jetbrains.plugins.scala.project.UserDataHolderExt
  */
 trait ScFunction extends ScalaPsiElement with ScMember with ScTypeParametersOwner
   with ScParameterOwner with ScDocCommentOwner with ScTypedDefinition with ScCommentOwner
-  with ScDeclaredElementsHolder with ScAnnotationsHolder with ScMethodLike with ScBlockStatement {
+  with ScDeclaredElementsHolder with ScAnnotationsHolder with ScMethodLike with ScBlockStatement with ScReturnTypeHolder {
 
   def isSyntheticCopy: Boolean = synthNavElement.nonEmpty && name == "copy"
   def isSyntheticApply: Boolean = synthNavElement.nonEmpty && name == "apply"
@@ -109,41 +109,6 @@ trait ScFunction extends ScalaPsiElement with ScMember with ScTypeParametersOwne
     super.hasModifierProperty(name)
   }
 
-  /**
-   * This method is important for expected type evaluation.
-   */
-  def getInheritedReturnType: Option[ScType] = {
-    returnTypeElement match {
-      case Some(_) => this.returnType.toOption
-      case None =>
-        val superReturnType = superMethodAndSubstitutor match {
-          case Some((fun: ScFunction, subst)) =>
-            var typeParamSubst = ScSubstitutor.empty
-            fun.typeParameters.zip(typeParameters).foreach {
-              case (oldParam: ScTypeParam, newParam: ScTypeParam) =>
-                typeParamSubst = typeParamSubst.bindT(oldParam.nameAndId, TypeParameterType(newParam, Some(subst)))
-            }
-            fun.returnType.toOption.map(typeParamSubst.followed(subst).subst)
-          case Some((fun: ScSyntheticFunction, subst)) =>
-            var typeParamSubst = ScSubstitutor.empty
-            fun.typeParameters.zip(typeParameters).foreach {
-              case (oldParam: ScSyntheticTypeParameter, newParam: ScTypeParam) =>
-                typeParamSubst = typeParamSubst.bindT(oldParam.nameAndId, TypeParameterType(newParam, Some(subst)))
-            }
-            Some(subst.subst(fun.retType))
-          case Some((fun: PsiMethod, subst)) =>
-            var typeParamSubst = ScSubstitutor.empty
-            fun.getTypeParameters.zip(typeParameters).foreach {
-              case (oldParam: PsiTypeParameter, newParam: ScTypeParam) =>
-                typeParamSubst = typeParamSubst.bindT(oldParam.nameAndId, TypeParameterType(newParam, Some(subst)))
-            }
-            Some(typeParamSubst.followed(subst).subst(fun.getReturnType.toScType()))
-          case _ => None
-        }
-        superReturnType
-    }
-  }
-
   override def getTextOffset: Int = nameId.getTextRange.getStartOffset
   def hasParameterClause: Boolean = {
     if (effectiveParameterClauses.nonEmpty) return true
@@ -171,7 +136,7 @@ trait ScFunction extends ScalaPsiElement with ScMember with ScTypeParametersOwne
   }
 
   def definedReturnType: TypeResult = {
-    returnTypeElement match {
+    typeElement match {
       case Some(ret) => ret.`type`()
       case _ if !hasAssign => Right(Unit)
       case _ =>
@@ -188,13 +153,13 @@ trait ScFunction extends ScalaPsiElement with ScMember with ScTypeParametersOwne
    * Optional Type Element, denotion function's return type
    * May be omitted for non-recursive functions
    */
-  def returnTypeElement: Option[ScTypeElement]
+  def typeElement: Option[ScTypeElement]
 
-  def hasExplicitType: Boolean = returnTypeElement.isDefined
+  def hasExplicitType: Boolean = typeElement.isDefined
 
   def removeExplicitType() {
     val colon = this.children.find(_.getNode.getElementType == ScalaTokenTypes.tCOLON)
-    (colon, returnTypeElement) match {
+    (colon, typeElement) match {
       case (Some(first), Some(last)) => deleteChildRange(first, last)
       case _ =>
     }
@@ -208,7 +173,7 @@ trait ScFunction extends ScalaPsiElement with ScMember with ScTypeParametersOwne
 
   protected def returnTypeInner: TypeResult
 
-  def declaredType: TypeResult = this.flatMapType(returnTypeElement)
+  def declaredType: TypeResult = this.flatMapType(typeElement)
 
   def clauses: Option[ScParameters] = Some(paramClauses)
 
