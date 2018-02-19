@@ -27,6 +27,7 @@ import org.jetbrains.plugins.scala.project.ScalaLanguageLevel.Scala_2_10
 import org.jetbrains.plugins.scala.project._
 
 import scala.collection.Seq
+import scala.collection.immutable.LongMap
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.ControlThrowable
 
@@ -386,43 +387,44 @@ object InferUtil {
       expectedType = abstractSubst.subst(p.paramType), defaultType = p.defaultType.map(s.subst)))
     val c = Compatibility.checkConformanceExt(checkNames = true, paramsWithUndefTypes, exprs, checkWithImplicits = true,
       isShapesResolve = false)
+
     val tpe = if (c.problems.isEmpty) {
       var un: ScUndefinedSubstitutor = c.undefSubst
       val subst = c.undefSubst
       subst.getSubstitutorWithBounds(canThrowSCE) match {
         case Some((unSubst, lMap, uMap)) =>
           if (!filterTypeParams) {
+
+            def combineBounds(tp: TypeParameter, isLower: Boolean): ScType = {
+              val bound = if (isLower) tp.lowerType else tp.upperType
+              val substedBound = unSubst.subst(bound)
+              val boundsMap = if (isLower) lMap else uMap
+              val combine: (ScType, ScType) => ScType = if (isLower) _ lub _ else _ glb _
+
+              boundsMap.get(tp.typeParamId) match {
+                case Some(fromMap) =>
+                  val withParams = tryAddParameters(fromMap, tp.typeParameters)
+
+                  val mayCombine = !substedBound.equiv(fromMap) && !hasRecursiveTypeParams(substedBound)
+
+                  if (mayCombine) combine(substedBound, withParams)
+                  else withParams
+                case _ => substedBound
+              }
+            }
+
             val undefiningSubstitutor = ScSubstitutor.bind(typeParams)(UndefinedType(_))
-            ScTypePolymorphicType(retType, typeParams.map {
-              case tp@TypeParameter(typeParameters, lowerType, upperType, psiTypeParameter) =>
-                val typeParamId = tp.typeParamId
-                val lower = lMap.get(typeParamId) match {
-                  case Some(_addLower) =>
-                    val substedLower = unSubst.subst(lowerType)
-                    val withParams = tryAddParameters(_addLower, typeParameters)
-
-                    if (substedLower == _addLower || hasRecursiveTypeParams(substedLower)) withParams
-                    else substedLower.lub(withParams)
-                  case None =>
-                    unSubst.subst(lowerType)
-                }
-                val upper = uMap.get(typeParamId) match {
-                  case Some(_addUpper) =>
-                    val substedUpper = unSubst.subst(upperType)
-                    val withParams = tryAddParameters(_addUpper, typeParameters)
-
-                    if (substedUpper == _addUpper || hasRecursiveTypeParams(substedUpper)) withParams
-                    else substedUpper.glb(withParams)
-                  case None =>
-                    unSubst.subst(upperType)
-                }
+            ScTypePolymorphicType(retType, typeParams.map { tp =>
+                val lower = combineBounds(tp, isLower = true)
+                val upper = combineBounds(tp, isLower = false)
 
                 if (canThrowSCE && !undefiningSubstitutor.subst(lower).weakConforms(undefiningSubstitutor.subst(upper)))
                   throw new SafeCheckException
-                TypeParameter(typeParameters, /* doesn't important here */
+
+              TypeParameter(tp.typeParameters, /* doesn't important here */
                   lower,
                   upper,
-                  psiTypeParameter)
+                  tp.psiTypeParameter)
             })
           } else {
             typeParams.foreach { tp =>
