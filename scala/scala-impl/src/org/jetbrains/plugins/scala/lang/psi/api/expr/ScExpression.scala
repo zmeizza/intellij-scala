@@ -6,29 +6,26 @@ package expr
 
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi._
-import org.jetbrains.plugins.scala.extensions.{PsiElementExt, PsiNamedElementExt, StringExt}
+import org.jetbrains.plugins.scala.extensions.{ChildOf, childOf, PsiNamedElementExt, StringExt}
 import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil.{MethodValue, isAnonymousExpression}
 import org.jetbrains.plugins.scala.lang.psi.api.InferUtil.{SafeCheckException, extractImplicitParameterType}
-import org.jetbrains.plugins.scala.lang.psi.api.base.types.ScTypeElement
 import org.jetbrains.plugins.scala.lang.psi.api.base.{ScIntLiteral, ScLiteral}
+import org.jetbrains.plugins.scala.lang.psi.api.expr.ExpectedTypes.ParameterType
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.usages.ImportUsed
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiElementFactory.createExpressionFromText
-import org.jetbrains.plugins.scala.lang.psi.implicits.{ImplicitCollector, ImplicitResolveResult, ScImplicitlyConvertible}
+import org.jetbrains.plugins.scala.lang.psi.implicits.{ImplicitCollector, ScImplicitlyConvertible}
 import org.jetbrains.plugins.scala.lang.psi.types._
 import org.jetbrains.plugins.scala.lang.psi.types.api._
 import org.jetbrains.plugins.scala.lang.psi.types.api.designator.ScDesignatorType
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{Parameter, ScMethodType, ScTypePolymorphicType}
 import org.jetbrains.plugins.scala.lang.psi.types.result._
-import org.jetbrains.plugins.scala.lang.resolve.processor.MethodResolveProcessor
-import org.jetbrains.plugins.scala.lang.resolve.{ScalaResolveResult, StdKinds}
+import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
 import org.jetbrains.plugins.scala.macroAnnotations.{CachedWithRecursionGuard, ModCount}
 import org.jetbrains.plugins.scala.project.ProjectPsiElementExt
 import org.jetbrains.plugins.scala.project.ScalaLanguageLevel.Scala_2_11
-import org.jetbrains.plugins.scala.lang.resolve.processor.DynamicResolveProcessor.conformsToDynamic
+
 import scala.annotation.tailrec
 import scala.collection.mutable
-
-import org.jetbrains.plugins.scala.lang.psi.api.expr.ExpectedTypes.ParameterType
 
 /**
   * @author ilyas, Alexander Podkhalyuzin
@@ -389,12 +386,8 @@ object ScExpression {
               }
             }
 
-            if (!isMethodInvocation(expr)) {
-              //it is not updated according to expected type, let's do it
-              expr.getParent match {
-                case _: ScGenericCall => // all the implicits belong to the parent ScGenericCall
-                case _                => res = updateExpected(rtp)
-              }
+            if (shouldUpdateImplicitParams(expr)) {
+              res = updateExpected(rtp)
             }
 
             def removeMethodType(retType: ScType, updateType: ScType => ScType = t => t) {
@@ -528,17 +521,20 @@ object ScExpression {
     }
 
     @tailrec
-    private def isMethodInvocation(expr: ScExpression): Boolean = {
+    private def shouldUpdateImplicitParams(expr: ScExpression): Boolean = {
+      //true if it wasn't updated in MethodInvocation method
       expr match {
-        case _: ScPrefixExpr => false
-        case _: ScPostfixExpr => false
-        case _: MethodInvocation => true
+        case _: ScPrefixExpr                    => true
+        case _: ScPostfixExpr                   => true
+        case ChildOf(ScInfixExpr(_, `expr`, _)) => false //implicit parameters are in infix expression
+        case ChildOf(_: ScGenericCall)          => false //implicit parameters are in generic call
+        case _: MethodInvocation                => false
         case p: ScParenthesisedExpr =>
           p.expr match {
-            case Some(exp) => isMethodInvocation(exp)
-            case _ => false
+            case Some(exp)                      => shouldUpdateImplicitParams(exp)
+            case _                              => false
           }
-        case _ => false
+        case _                                  => true
       }
     }
 
@@ -566,31 +562,6 @@ object ScExpression {
         case MethodValue(method) if expr.scalaLanguageLevelOrDefault == Scala_2_11 || method.getParameterList.getParametersCount > 0 =>
           checkForSAM(etaExpansionHappened = true)
         case _ => None
-      }
-    }
-
-    private def removeMethodType(tp: ScType, expected: ScType): ScType = {
-      def inner(retType: ScType, updateType: ScType => ScType): ScType = {
-        expected.removeAbstracts match {
-          case FunctionType(_, _) => tp
-          case expect if ScalaPsiUtil.isSAMEnabled(expr) =>
-            val languageLevel = expr.scalaLanguageLevelOrDefault
-            if (languageLevel != Scala_2_11 || ScalaPsiUtil.toSAMType(expect, expr).isEmpty) {
-              updateType(retType)
-            }
-            else tp
-          case _ => updateType(retType)
-        }
-      }
-
-      tp match {
-        case ScTypePolymorphicType(ScMethodType(retType, params, _), typeParams) if params.isEmpty &&
-          !ScUnderScoreSectionUtil.isUnderscore(expr) =>
-          inner(retType, t => ScTypePolymorphicType(t, typeParams))
-        case ScMethodType(retType, params, _) if params.isEmpty &&
-          !ScUnderScoreSectionUtil.isUnderscore(expr) =>
-          inner(retType, t => t)
-        case _ => tp
       }
     }
   }
