@@ -1,23 +1,30 @@
-package org.jetbrains.plugins.scala
-package annotator
-package importsTracker
-
+package org.jetbrains.plugins.scala.annotator.usageTracker
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.plugins.scala.extensions.PsiElementExt
+import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaFile
+import org.jetbrains.plugins.scala.lang.psi.api.expr.ScReferenceExpression
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.ScImportExpr
-import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.usages.{ImportExprUsed, ImportSelectorUsed, ImportUsed}
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.usages._
+import org.jetbrains.plugins.scala.lang.psi.light.scala.isLightScNamedElement
 import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
 import org.jetbrains.plugins.scala.worksheet.ScalaScriptImportsUtil
 
-import scala.collection.mutable
-import scala.collection.Set
+import scala.collection.{Set, mutable}
 
 /**
- * @author Alexander Podkhalyuzin
- */
-object ImportTracker {
+  * @author Alexander Podkhalyuzin
+  */
+object UsageTracker {
+
+  def registerUsedElementsAndImports(element: PsiElement, results: Seq[ScalaResolveResult], checkWrite: Boolean): Unit = {
+    for (resolveResult <- results if resolveResult != null) {
+      registerUsedImports(element, resolveResult)
+      registerUsedElement(element, resolveResult, checkWrite)
+    }
+  }
 
   def registerUsedImports(elem: PsiElement, imports: Set[ImportUsed]): Unit = {
     if (!elem.isValid) return
@@ -57,4 +64,27 @@ object ImportTracker {
     }
     ScalaScriptImportsUtil.filterScriptImportsInUnused(file, buff.toSeq)
   }
+
+  private def registerUsedElement(element: PsiElement,
+                                  resolveResult: ScalaResolveResult,
+                                  checkWrite: Boolean) {
+    val named = resolveResult.getActualElement match {
+      case isLightScNamedElement(e) => e
+      case e => e
+    }
+    val file = element.getContainingFile
+    if (named.isValid && named.getContainingFile == file &&
+      !PsiTreeUtil.isAncestor(named, element, true)) { //to filter recursive usages
+      val value: ValueUsed = element match {
+        case ref: ScReferenceExpression if checkWrite &&
+          ScalaPsiUtil.isPossiblyAssignment(ref) => WriteValueUsed(named)
+        case _ => ReadValueUsed(named)
+      }
+      val holder = ScalaRefCountHolder.getInstance(file)
+      holder.registerValueUsed(value)
+      // For use of unapply method, see SCL-3463
+      resolveResult.parentElement.foreach(parent => holder.registerValueUsed(ReadValueUsed(parent)))
+    }
+  }
+
 }
