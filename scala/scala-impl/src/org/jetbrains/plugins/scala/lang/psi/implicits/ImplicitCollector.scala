@@ -382,7 +382,7 @@ class ImplicitCollector(place: PsiElement,
   private def updateNonValueType(nonValueType0: ScType): ScType = {
     InferUtil.updateAccordingToExpectedType(
       nonValueType0,
-      fromImplicitParameters = true,
+      fromImplicitSearch = true,
       filterTypeParams = isImplicitConversion,
       expectedType = Some(tp),
       place,
