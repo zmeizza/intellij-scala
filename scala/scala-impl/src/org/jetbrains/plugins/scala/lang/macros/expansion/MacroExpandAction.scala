@@ -6,7 +6,6 @@ import java.util.regex.Pattern
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import scala.meta.intellij.MetaExpansionsManager
-
 import com.intellij.notification.{NotificationGroup, NotificationType}
 import com.intellij.openapi.actionSystem.{AnAction, AnActionEvent}
 import com.intellij.openapi.application.PathManager
@@ -20,9 +19,10 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.wm.ToolWindowId
 import com.intellij.psi._
 import com.intellij.psi.codeStyle.CodeStyleManager
-import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.impl.source.codeStyle.CodeEditUtil
+import com.intellij.psi.impl.source.tree.{LeafPsiElement, TreeElement}
 import org.jetbrains.plugin.scala.util.MacroExpansion
-import org.jetbrains.plugins.scala.extensions.{PsiElementExt, inWriteCommandAction}
+import org.jetbrains.plugins.scala.extensions.{CharSeqExt, PsiElementExt, PsiFileExt, inWriteCommandAction}
 import org.jetbrains.plugins.scala.lang.lexer.ScalaTokenTypes
 import org.jetbrains.plugins.scala.lang.psi.ScalaPsiElement
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaFile
@@ -148,7 +148,7 @@ class MacroExpandAction extends AnAction {
       // handle macro calls with incorrect offset pointing to macro annotation
       // most likely it means given call is located inside another macro expansion
       case e: LeafPsiElement if expansion.place.macroApplication.matches("^[^\\)]+\\)$") =>
-        val pos = e.getContainingFile.getText.indexOf(expansion.place.macroApplication)
+        val pos = e.getContainingFile.charSequence.indexOf(expansion.place.macroApplication)
         if (pos != -1)
           Some(e.getContainingFile.findElementAt(pos))
         else
@@ -292,7 +292,7 @@ object MacroExpandAction {
       case holder: ScAnnotationsHolder =>
         val body = expansion.body
         val newPsi = ScalaPsiElementFactory.createBlockExpressionWithoutBracesFromText(body)
-        reformatCode(newPsi)
+        CodeEditUtil.setNodeGeneratedRecursively(newPsi.getNode, true)
         newPsi.firstChild match {
           case Some(block: ScBlock) => // insert content of block expression(annotation can generate >1 expression)
             val children = block.getChildren.dropWhile(filter).reverse.dropWhile(filter).reverse
@@ -313,9 +313,11 @@ object MacroExpandAction {
               }
             holder.getParent.addRangeAfter(children.head, children.last, holder)
             holder.getParent.getNode.removeChild(holder.getNode)
+            reformatCode(newPsi)
           case Some(psi: PsiElement) => // defns/method bodies/etc...
-            val result = holder.replace(psi)
-            result.putCopyableUserData(EXPANDED_KEY, UndoExpansionData(holder.getText))
+            psi.putCopyableUserData(EXPANDED_KEY, UndoExpansionData(holder.getText))
+            holder.getParent.getNode.replaceChild(holder.getNode, psi.getNode)
+            reformatCode(newPsi)
           case None => LOG.warn(s"Failed to parse expansion: $body")
         }
       case other => LOG.warn(s"Unexpected annotated element: $other at ${other.getText}")

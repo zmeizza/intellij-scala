@@ -1,7 +1,7 @@
 package org.jetbrains.plugins.scala.failed.annotator
 
 import org.jetbrains.plugins.scala.PerfCycleTests
-import org.jetbrains.plugins.scala.annotator.{Error, Message, OverridingAnnotatorTestBase}
+import org.jetbrains.plugins.scala.annotator.{Message, OverridingAnnotatorTestBase}
 import org.junit.experimental.categories.Category
 
 /**

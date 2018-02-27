@@ -11,7 +11,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.expr.ExpectedTypes._
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
 import org.jetbrains.plugins.scala.lang.psi.api.statements._
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.ScParameter
-import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScTypedDefinition
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.{ScEarlyDefinitions, ScTypedDefinition}
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiManager
 import org.jetbrains.plugins.scala.lang.psi.impl.expr.ExpectedTypesImpl._
 import org.jetbrains.plugins.scala.lang.psi.implicits.ImplicitResolveResult
@@ -93,9 +93,9 @@ class ExpectedTypesImpl extends ExpectedTypes {
       }
     }
 
-    def mapResolves(resolves: Array[ResolveResult], types: Array[TypeResult]): Array[(TypeResult, Boolean)] = {
+    def mapResolves(resolves: Array[ScalaResolveResult], types: Array[TypeResult]): Array[(TypeResult, Boolean)] = {
       resolves.zip(types).map {
-        case (r: ScalaResolveResult, tp) =>
+        case (r, tp) =>
           (tp, isApplyDynamicNamed(r))
         case (_, tp) => (tp, false)
       }
@@ -197,7 +197,7 @@ class ExpectedTypesImpl extends ExpectedTypes {
           val tps = callExpression match {
             case ref: ScReferenceExpression =>
               if (!withResolvedFunction) mapResolves(ref.shapeResolve, ref.shapeMultiType)
-              else mapResolves(ref.multiResolve(false), ref.multiType)
+              else mapResolves(ref.multiResolveScala(false), ref.multiType)
             case _ => Array((callExpression.getNonValueType(), false))
           }
           tps.foreach { case (r, isDynamicNamed) =>
@@ -228,7 +228,7 @@ class ExpectedTypesImpl extends ExpectedTypes {
           case _ => expr
         }
         val tps =
-          if (withResolvedFunction) mapResolves(operation.multiResolve(false), operation.multiType)
+          if (withResolvedFunction) mapResolves(operation.multiResolveScala(false), operation.multiType)
           else mapResolves(operation.shapeResolve, operation.shapeMultiType)
 
         val updated = tps.map { case (tp, isDynamicNamed) =>
@@ -244,19 +244,20 @@ class ExpectedTypesImpl extends ExpectedTypes {
       case v @ ScPatternDefinition.expr(expr) if expr == sameInContext =>
         v.typeElement match {
           case Some(te) => Array((v.`type`().getOrAny, Some(te)))
-          case _ => Array.empty
+          case _ if v.getParent.isInstanceOf[ScEarlyDefinitions] => Array.empty
+          case _ => v.getInheritedReturnType.map((_, None)).toArray
         }
       case v @ ScVariableDefinition.expr(expr) if expr == sameInContext =>
         v.typeElement match {
           case Some(te) => Array((v.`type`().getOrAny, Some(te)))
-          case _ => Array.empty
+          case _ => v.getInheritedReturnType.map((_, None)).toArray
         }
       //SLS[4.6]
       case v: ScFunctionDefinition if (v.body match {
         case None => false
         case Some(b) => b == sameInContext
       }) =>
-        v.returnTypeElement match {
+        v.typeElement match {
           case Some(te) => v.returnType.toOption.map(x => (x, Some(te))).toArray
           case None if !v.hasAssign => Array((api.Unit, None))
           case _ => v.getInheritedReturnType.map((_, None)).toArray
@@ -270,7 +271,7 @@ class ExpectedTypesImpl extends ExpectedTypes {
       case ret: ScReturnStmt =>
         val fun: ScFunction = PsiTreeUtil.getContextOfType(ret, true, classOf[ScFunction])
         if (fun == null) return Array.empty
-        fun.returnTypeElement match {
+        fun.typeElement match {
           case Some(rte: ScTypeElement) =>
             fun.returnType match {
               case Right(rt) => Array((rt, Some(rte)))
@@ -290,7 +291,7 @@ class ExpectedTypesImpl extends ExpectedTypes {
           var tps = callExpression match {
             case ref: ScReferenceExpression =>
               if (!withResolvedFunction) mapResolves(ref.shapeResolve, ref.shapeMultiType)
-              else mapResolves(ref.multiResolve(false), ref.multiType)
+              else mapResolves(ref.multiResolveScala(false), ref.multiType)
             case gen: ScGenericCall =>
               if (!withResolvedFunction) {
                 val multiType = gen.shapeMultiType

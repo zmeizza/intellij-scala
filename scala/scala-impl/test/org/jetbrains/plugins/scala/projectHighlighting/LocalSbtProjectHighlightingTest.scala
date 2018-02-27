@@ -32,10 +32,8 @@ class ScalaPetStoreTest extends LocalSbtProjectHighlightingTest {
 
   override def filesWithProblems: Map[String, Set[TextRange]] = Map(
     "OrderEndointsSpec.scala" -> Set((824, 840)),
-    "DoobiePetRepositoryInterpreter.scala" -> Set(),
     "PetEndpoints.scala" -> Set(),
     "PetEndpointsSpec.scala" -> Set((911, 925),(1527, 1541)),
-    "DoobieOrderRepositoryInterpreter.scala" -> Set(),
     "Arbitraries.scala" -> Set((574, 583))
   )
 }

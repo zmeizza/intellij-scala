@@ -61,7 +61,7 @@ class ShapelessTest extends TypeInferenceTestBase {
      """.stripMargin
   )
 
-  def testProductArgsStringInterpolator(): Unit = {
+  def testProductArgsStringInterpolator(): Unit = doTest(
     s"""
        |import shapeless._
        |
@@ -77,5 +77,5 @@ class ShapelessTest extends TypeInferenceTestBase {
        |${START}bar"$$x"$END
        |//::[String, ::[Int, HNil]]
      """.stripMargin
-  }
+  )
 }
