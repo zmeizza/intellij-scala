@@ -7,16 +7,17 @@ import org.jetbrains.plugins.scala.lang.psi.types.result._
 import org.jetbrains.plugins.scala.lang.psi.types.{NamedType, ScType, ScUndefinedSubstitutor}
 import org.jetbrains.plugins.scala.project.ProjectContext
 
-import scala.collection.Seq
+class TypeParameterType private (val typeParameter: TypeParameter,
+                                 val substitutor: ScSubstitutor = ScSubstitutor.empty)
+  extends ValueType with NamedType {
 
-sealed trait TypeParameterType extends ValueType with NamedType {
-  val arguments: Seq[TypeParameterType]
+  def typeParameters: Seq[TypeParameter] = typeParameter.typeParameters
 
-  def lowerType: ScType
+  val arguments: Seq[TypeParameterType] = typeParameters.map(new TypeParameterType(_, substitutor))
 
-  def upperType: ScType
+  lazy val lowerType: ScType = substitutor.subst(typeParameter.lowerType)
 
-  def typeParameter: TypeParameter
+  lazy val upperType: ScType = substitutor.subst(typeParameter.upperType)
 
   def psiTypeParameter: PsiTypeParameter = typeParameter.psiTypeParameter
 
@@ -49,17 +50,14 @@ sealed trait TypeParameterType extends ValueType with NamedType {
 }
 
 object TypeParameterType {
-  def apply(tp: TypeParameter): TypeParameterType = LazyTpt(tp)
-
-  def apply(psiTp: PsiTypeParameter): TypeParameterType = LazyTpt(TypeParameter(psiTp))
+  def apply(tp: TypeParameter, substitutor: ScSubstitutor = ScSubstitutor.empty): TypeParameterType =
+    new TypeParameterType(tp, substitutor)
 
   def apply(psiTp: PsiTypeParameter, substitutor: ScSubstitutor): TypeParameterType =
-    LazyTpt(TypeParameter(psiTp), substitutor)
+    new TypeParameterType(TypeParameter(psiTp), substitutor)
 
-  def apply(typeParameter: TypeParameter,
-            arguments: Seq[TypeParameterType],
-            lowerType: ScType,
-            upperType: ScType): TypeParameterType = StrictTpt(typeParameter, arguments, lowerType, upperType)
+  def apply(psiTp: PsiTypeParameter): TypeParameterType =
+    new TypeParameterType(TypeParameter(psiTp), ScSubstitutor.empty)
 
   def unapply(tpt: TypeParameterType): Option[(TypeParameter, Seq[TypeParameterType], ScType, ScType)] =
     Some(tpt.typeParameter, tpt.arguments, tpt.lowerType, tpt.upperType)
@@ -67,19 +65,4 @@ object TypeParameterType {
   object ofPsi {
     def unapply(tp: TypeParameterType): Option[PsiTypeParameter] = Some(tp.psiTypeParameter)
   }
-
-  private case class LazyTpt(typeParameter: TypeParameter, substitutor: ScSubstitutor = ScSubstitutor.empty)
-    extends TypeParameterType {
-
-    val arguments: Seq[TypeParameterType] = typeParameter.typeParameters.map(LazyTpt(_, substitutor))
-
-    lazy val lowerType: ScType = substitutor.subst(typeParameter.lowerType)
-
-    lazy val upperType: ScType = substitutor.subst(typeParameter.upperType)
-  }
-
-  private case class StrictTpt(typeParameter: TypeParameter,
-                               arguments: Seq[TypeParameterType],
-                               override val lowerType: ScType,
-                               override val upperType: ScType) extends TypeParameterType
 }

@@ -74,7 +74,7 @@ case class ScExistentialType(quantified: ScType,
     if (this != simplified) return simplified.equiv(r, undefinedSubst, falseUndef)
     (quantified, r) match {
       case (ParameterizedType(ScAbstractType(parameterType, lowerBound, upperBound), args), _) if !falseUndef =>
-        val subst = ScSubstitutor.bind(parameterType.arguments, args)
+        val subst = ScSubstitutor.bind(parameterType.typeParameters, args)
         val upper: ScType =
           subst.subst(upperBound) match {
             case ParameterizedType(u, _) => ScExistentialType(ScParameterizedType(u, args), wildcards)
@@ -251,9 +251,9 @@ case class ScExistentialType(quantified: ScType,
       case ParameterizedType(designator, typeArgs) =>
         val parameteresIterator = designator match {
           case tpt: TypeParameterType =>
-            tpt.arguments.map(_.psiTypeParameter).iterator
+            tpt.typeParameters.map(_.psiTypeParameter).iterator
           case undef: UndefinedType =>
-            undef.parameterType.arguments.map(_.psiTypeParameter).iterator
+            undef.parameterType.typeParameters.map(_.psiTypeParameter).iterator
           case tp: ScType =>
             tp.extractClass match {
               case Some(owner) =>

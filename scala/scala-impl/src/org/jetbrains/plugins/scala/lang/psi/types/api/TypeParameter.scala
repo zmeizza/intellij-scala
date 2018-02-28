@@ -19,6 +19,8 @@ sealed trait TypeParameter {
   def lowerType: ScType
   def upperType: ScType
 
+  def hasParameters: Boolean = typeParameters.nonEmpty
+
   def name: String = psiTypeParameter.name
 
   def update(function: ScType => ScType): TypeParameter = TypeParameter.StrictTp(

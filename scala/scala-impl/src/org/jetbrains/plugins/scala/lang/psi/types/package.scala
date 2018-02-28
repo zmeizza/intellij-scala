@@ -97,6 +97,12 @@ package object types {
 
     def toPsiType: PsiType = typeSystem.toPsiType(scType)
 
+    def withArgsFrom(tpt: TypeParameterType): ScType = scType match {
+      case p: ScParameterizedType                => scType
+      case _ if !tpt.typeParameter.hasParameters => scType
+      case _                                     => ScParameterizedType(scType, tpt.arguments)
+    }
+
     /**
       * Returns named element associated with type.
       * If withoutAliases is true expands alias definitions first
