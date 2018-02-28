@@ -219,25 +219,16 @@ case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeP
     polymorphicTypeSubstitutor(inferValueType = true).subst(internalType.inferValueType).asInstanceOf[ValueType]
   }
 
-  override def removeAbstracts = ScTypePolymorphicType(internalType.removeAbstracts,
-    typeParameters.map {
-      case TypeParameter(psiTypeParameter, parameters, lowerType, upperType) =>
-        TypeParameter(psiTypeParameter,
-          parameters,// todo: ?
-          lowerType.removeAbstracts,
-          upperType.removeAbstracts)
-    })
+  override def removeAbstracts = ScTypePolymorphicType(
+    internalType.removeAbstracts,
+    typeParameters.update(_.removeAbstracts)
+  )
 
   override def updateSubtypes(updates: Seq[Update], visited: Set[ScType]): ScType = {
     ScTypePolymorphicType(
       internalType.recursiveUpdateImpl(updates, visited),
-      typeParameters.map {
-        case TypeParameter(psiTypeParameter, parameters, lowerType, upperType) =>
-          TypeParameter(psiTypeParameter,
-            parameters,// TODO: ?
-            lowerType.recursiveUpdateImpl(updates, visited, isLazySubtype = true),
-            upperType.recursiveUpdateImpl(updates, visited, isLazySubtype = true))
-      })
+      typeParameters.update(_.recursiveUpdateImpl(updates, visited, isLazySubtype = true))
+    )
   }
 
   override def recursiveVarianceUpdateModifiable[T](data: T, update: (ScType, Variance, T) => (Boolean, ScType, T),
@@ -245,17 +236,10 @@ case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeP
     update(this, v, data) match {
       case (true, res, _) => res
       case (_, _, newData) =>
-        def innerUpdate(`type`: ScType, variance: Variance) =
-          `type`.recursiveVarianceUpdateModifiable(newData, update, variance)
-
-        ScTypePolymorphicType(innerUpdate(internalType, v),
-          typeParameters.map {
-            case TypeParameter(psiTypeParameter, parameters, lowerType, upperType) =>
-              TypeParameter(psiTypeParameter,
-                parameters,// TODO: ?
-                innerUpdate(lowerType, -v),
-                innerUpdate(upperType, v))
-          })
+        ScTypePolymorphicType(
+          internalType.recursiveVarianceUpdateModifiable(newData, update, v),
+          typeParameters.updateWithVariance(_.recursiveVarianceUpdateModifiable(newData, update, _), -v)
+        )
     }
   }
 

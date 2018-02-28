@@ -229,19 +229,11 @@ case class ScExistentialType(quantified: ScType,
       case ScCompoundType(components, signatureMap, typeMap) =>
         val newSet = rejected ++ typeMap.keys
 
-        def updateTypeParam: TypeParameter => TypeParameter = {
-          case TypeParameter(psiTypeParameter, typeParameters, lowerType, upperType) =>
-            TypeParameter(psiTypeParameter,
-              typeParameters.map(updateTypeParam),
-              updateRecursive(lowerType, newSet, variance),
-              updateRecursive(upperType, newSet, -variance))
-        }
-
         new ScCompoundType(components, signatureMap.map {
           case (s, sctype) =>
             val pTypes: Seq[Seq[() => ScType]] =
               s.substitutedTypes.map(_.map(f => () => updateRecursive(f(), newSet, variance)))
-            val tParams = s.typeParams.subst(updateTypeParam)
+            val tParams = s.typeParams.updateWithVariance(updateRecursive(_, newSet, _), variance)
             val rt: ScType = updateRecursive(sctype, newSet, -variance)
             (new Signature(s.name, pTypes, tParams,
               ScSubstitutor.empty, s.namedElement match {
@@ -325,13 +317,8 @@ case class ScExistentialType(quantified: ScType,
       case ScTypePolymorphicType(internalType, typeParameters) =>
         ScTypePolymorphicType(
           updateRecursive(internalType, rejected, variance),
-          typeParameters.map {
-            case TypeParameter(psiTypeParameter, parameters, lowerType, upperType) =>
-              TypeParameter(psiTypeParameter, // todo: is it important here to update?
-                parameters,
-                updateRecursive(lowerType, rejected, variance),
-                updateRecursive(upperType, rejected, variance))
-          })
+          typeParameters.update(updateRecursive(_, rejected, variance))
+        )
       case _ => tp
     }
   }

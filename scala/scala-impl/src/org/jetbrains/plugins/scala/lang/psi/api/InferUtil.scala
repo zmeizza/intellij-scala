@@ -487,11 +487,7 @@ object InferUtil {
                   }
                   !removeMe
               }.map {
-                case TypeParameter(psiTypeParameter, typeParameters, lowerType, upperType) =>
-                  TypeParameter(psiTypeParameter, /* doesn't important here */
-                    typeParameters,
-                    sub.subst(lowerType),
-                    sub.subst(upperType))
+                _.update(sub.subst)
               })
             }
 
