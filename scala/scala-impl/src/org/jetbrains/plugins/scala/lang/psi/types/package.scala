@@ -99,7 +99,7 @@ package object types {
 
     def withArgsFrom(tpt: TypeParameterType): ScType = scType match {
       case p: ScParameterizedType                => scType
-      case _ if !tpt.typeParameter.hasParameters => scType
+      case _ if tpt.arguments.isEmpty            => scType
       case _                                     => ScParameterizedType(scType, tpt.arguments)
     }
 

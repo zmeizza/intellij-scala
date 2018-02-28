@@ -487,7 +487,7 @@ object ScalaPsiUtil {
         case ScAbstractType(_, _, upper) =>
           collectParts(upper)
         case ScExistentialType(quant, _) => collectParts(quant)
-        case TypeParameterType(_, _, _, upper) => collectParts(upper)
+        case tpt: TypeParameterType => collectParts(tpt.upperType)
         case _ =>
           tp.extractClassType match {
             case Some((clazz, subst)) =>
