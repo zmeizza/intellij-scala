@@ -7,17 +7,16 @@ import org.jetbrains.plugins.scala.lang.psi.types.result._
 import org.jetbrains.plugins.scala.lang.psi.types.{NamedType, ScType, ScUndefinedSubstitutor}
 import org.jetbrains.plugins.scala.project.ProjectContext
 
-class TypeParameterType private (val typeParameter: TypeParameter,
-                                 val substitutor: ScSubstitutor = ScSubstitutor.empty)
+class TypeParameterType private (val typeParameter: TypeParameter)
   extends ValueType with NamedType {
 
   def typeParameters: Seq[TypeParameter] = typeParameter.typeParameters
 
-  val arguments: Seq[TypeParameterType] = typeParameters.map(new TypeParameterType(_, substitutor))
+  val arguments: Seq[TypeParameterType] = typeParameters.map(new TypeParameterType(_))
 
-  lazy val lowerType: ScType = substitutor.subst(typeParameter.lowerType)
+  lazy val lowerType: ScType = typeParameter.lowerType
 
-  lazy val upperType: ScType = substitutor.subst(typeParameter.upperType)
+  lazy val upperType: ScType = typeParameter.upperType
 
   def psiTypeParameter: PsiTypeParameter = typeParameter.psiTypeParameter
 
@@ -51,18 +50,15 @@ class TypeParameterType private (val typeParameter: TypeParameter,
 
 object TypeParameterType {
   def apply(tp: TypeParameter, substitutor: ScSubstitutor = ScSubstitutor.empty): TypeParameterType =
-    new TypeParameterType(tp, substitutor)
+    new TypeParameterType(tp)
 
   def apply(psiTp: PsiTypeParameter, substitutor: ScSubstitutor): TypeParameterType =
-    new TypeParameterType(TypeParameter(psiTp), substitutor)
+    new TypeParameterType(TypeParameter(psiTp))
 
   def apply(psiTp: PsiTypeParameter): TypeParameterType =
-    new TypeParameterType(TypeParameter(psiTp), ScSubstitutor.empty)
-
-  def unapply(tpt: TypeParameterType): Option[(TypeParameter, Seq[TypeParameterType], ScType, ScType)] =
-    Some(tpt.typeParameter, tpt.arguments, tpt.lowerType, tpt.upperType)
+    new TypeParameterType(TypeParameter(psiTp))
 
   object ofPsi {
-    def unapply(tp: TypeParameterType): Option[PsiTypeParameter] = Some(tp.psiTypeParameter)
+    def unapply(tpt: TypeParameterType): Option[PsiTypeParameter] = Some(tpt.psiTypeParameter)
   }
 }
