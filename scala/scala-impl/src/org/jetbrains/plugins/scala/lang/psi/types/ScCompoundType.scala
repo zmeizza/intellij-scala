@@ -64,11 +64,11 @@ case class ScCompoundType(components: Seq[ScType],
     signatureMap.map {
       case (s: Signature, tp: ScType) =>
         def updateTypeParam: TypeParameter => TypeParameter = {
-          case TypeParameter(typeParameters, lowerType, upperType, psiTypeParameter) =>
-            TypeParameter(typeParameters.map(updateTypeParam),
+          case TypeParameter(psiTypeParameter, typeParameters, lowerType, upperType) =>
+            TypeParameter(psiTypeParameter,
+              typeParameters.map(updateTypeParam),
               lowerType.removeAbstracts,
-              upperType.removeAbstracts,
-              psiTypeParameter)
+              upperType.removeAbstracts)
         }
 
         val pTypes: Seq[Seq[() => ScType]] = s.substitutedTypes.map(_.map(f => () => f().removeAbstracts))
@@ -88,11 +88,11 @@ case class ScCompoundType(components: Seq[ScType],
 
   override def updateSubtypes(updates: Seq[Update], visited: Set[ScType]): ScCompoundType = {
     def updateTypeParam: TypeParameter => TypeParameter = {
-      case TypeParameter(typeParameters, lowerType, upperType, psiTypeParameter) =>
-        TypeParameter(typeParameters.map(updateTypeParam),
+      case TypeParameter(psiTypeParameter, typeParameters, lowerType, upperType) =>
+        TypeParameter(psiTypeParameter,
+          typeParameters.map(updateTypeParam),
           lowerType.recursiveUpdateImpl(updates, visited, isLazySubtype = true),
-          upperType.recursiveUpdateImpl(updates, visited, isLazySubtype = true),
-          psiTypeParameter)
+          upperType.recursiveUpdateImpl(updates, visited, isLazySubtype = true))
     }
 
     new ScCompoundType(components.map(_.recursiveUpdateImpl(updates, visited)), signatureMap.map {
@@ -122,11 +122,11 @@ case class ScCompoundType(components: Seq[ScType],
       case (true, res, _) => res
       case (_, _, newData) =>
         def updateTypeParam: TypeParameter => TypeParameter = {
-          case TypeParameter(typeParameters, lowerType, upperType, psiTypeParameter) =>
-            TypeParameter(typeParameters.map(updateTypeParam),
+          case TypeParameter(psiTypeParameter, typeParameters, lowerType, upperType) =>
+            TypeParameter(psiTypeParameter,
+              typeParameters.map(updateTypeParam),
               lowerType.recursiveVarianceUpdateModifiable(newData, update, Covariant),
-              upperType.recursiveVarianceUpdateModifiable(newData, update, Covariant),
-              psiTypeParameter)
+              upperType.recursiveVarianceUpdateModifiable(newData, update, Covariant))
         }
 
         val updSignatureMap = signatureMap.map {

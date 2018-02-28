@@ -65,7 +65,7 @@ class ScParameterizedType private(val designator: ScType, val typeArguments: Seq
 
   protected override def substitutorInner: ScSubstitutor = {
     designator match {
-      case TypeParameterType(args, _, _, _) =>
+      case TypeParameterType(_, args, _, _) =>
         ScSubstitutor.bind(args, typeArguments)
       case _ => designator.extractDesignatedType(expandAliases = false) match {
         case Some((owner: ScTypeParametersOwner, s)) =>

@@ -997,7 +997,9 @@ trait ScalaConformance extends api.Conformance {
                 val t = checkParameterizedType(parameterType.arguments.map(_.psiTypeParameter).iterator, args1, abstracted,
                   undefinedSubst, visited, checkWeak)
                 result = if (t._1) {
-                  val abstractedTypeParams = abstracted.zipWithIndex.map { case (aType, i) => TypeParameter(Seq(), Nothing, Any, new ScExistentialLightTypeParam("p" + i + "$$")) }
+                  val abstractedTypeParams = abstracted.zipWithIndex.map {
+                    case (aType, i) => TypeParameter.light("p" + i + "$$", Seq(), Nothing, Any)
+                  }
                   addParam(parameterType, ScTypePolymorphicType(ScParameterizedType(des2,
                     captured ++ abstractedTypeParams.map(TypeParameterType(_))), abstractedTypeParams), t._2)
                 } else {
@@ -1179,9 +1181,8 @@ trait ScalaConformance extends api.Conformance {
           case ScExistentialArgument(name, _, _, _) =>
             e.wildcards.find(_.name == name) match {
               case Some(ScExistentialArgument(thatName, args, lower, upper)) if !rejected.contains(thatName) =>
-                val tpt = tptsMap.getOrElseUpdate(thatName,
-                  TypeParameterType(args, lower, upper, new ScExistentialLightTypeParam(name))
-                )
+                val lightTypeParam = TypeParameter.light(name, args.map(_.typeParameter), lower, upper)
+                val tpt = tptsMap.getOrElseUpdate(thatName, TypeParameterType(lightTypeParam))
                 ReplaceWith(tpt)
               case _ => ProcessSubtypes
             }

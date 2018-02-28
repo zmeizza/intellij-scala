@@ -1,7 +1,6 @@
 package org.jetbrains.plugins.scala.lang.psi.types.api
 
 import com.intellij.psi.PsiTypeParameter
-import org.jetbrains.plugins.scala.extensions.PsiNamedElementExt
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.ScTypeParam
 import org.jetbrains.plugins.scala.lang.psi.types.recursiveUpdate.ScSubstitutor
 import org.jetbrains.plugins.scala.lang.psi.types.result._
@@ -17,26 +16,19 @@ sealed trait TypeParameterType extends ValueType with NamedType {
 
   def upperType: ScType
 
-  def psiTypeParameter: PsiTypeParameter
+  def typeParameter: TypeParameter
+
+  def psiTypeParameter: PsiTypeParameter = typeParameter.psiTypeParameter
 
   override implicit def projectContext: ProjectContext = psiTypeParameter
 
-  override val name: String = psiTypeParameter.name
+  override val name: String = typeParameter.name
 
-  def isInvariant: Boolean = psiTypeParameter match {
-    case typeParam: ScTypeParam => !typeParam.isCovariant && !typeParam.isContravariant
-    case _ => false
-  }
+  def isInvariant: Boolean = typeParameter.isInvariant
 
-  def isCovariant: Boolean = psiTypeParameter match {
-    case typeParam: ScTypeParam => typeParam.isCovariant
-    case _ => false
-  }
+  def isCovariant: Boolean = typeParameter.isCovariant
 
-  def isContravariant: Boolean = psiTypeParameter match {
-    case typeParam: ScTypeParam => typeParam.isContravariant
-    case _ => false
-  }
+  def isContravariant: Boolean = typeParameter.isContravariant
 
   override def equivInner(`type`: ScType, substitutor: ScUndefinedSubstitutor, falseUndef: Boolean): (Boolean, ScUndefinedSubstitutor) =
     (`type` match {
@@ -57,41 +49,37 @@ sealed trait TypeParameterType extends ValueType with NamedType {
 }
 
 object TypeParameterType {
-  def apply(tp: TypeParameter): TypeParameterType = LazyTpt(tp, None)
+  def apply(tp: TypeParameter): TypeParameterType = LazyTpt(tp)
 
-  def apply(psiTp: PsiTypeParameter): TypeParameterType = LazyTpt(TypeParameter(psiTp), None)
+  def apply(psiTp: PsiTypeParameter): TypeParameterType = LazyTpt(TypeParameter(psiTp))
 
   def apply(psiTp: PsiTypeParameter, substitutor: ScSubstitutor): TypeParameterType =
-    LazyTpt(TypeParameter(psiTp), Some(substitutor))
+    LazyTpt(TypeParameter(psiTp), substitutor)
 
-  def apply(arguments: Seq[TypeParameterType],
+  def apply(typeParameter: TypeParameter,
+            arguments: Seq[TypeParameterType],
             lowerType: ScType,
-            upperType: ScType,
-            psiTypeParameter: PsiTypeParameter): TypeParameterType = StrictTpt(arguments, lowerType, upperType, psiTypeParameter)
+            upperType: ScType): TypeParameterType = StrictTpt(typeParameter, arguments, lowerType, upperType)
 
-  def unapply(tpt: TypeParameterType): Option[(Seq[TypeParameterType], ScType, ScType, PsiTypeParameter)] =
-    Some(tpt.arguments, tpt.lowerType, tpt.upperType, tpt.psiTypeParameter)
+  def unapply(tpt: TypeParameterType): Option[(TypeParameter, Seq[TypeParameterType], ScType, ScType)] =
+    Some(tpt.typeParameter, tpt.arguments, tpt.lowerType, tpt.upperType)
 
-
-  private case class LazyTpt(typeParameter: TypeParameter, maybeSubstitutor: Option[ScSubstitutor] = None)
-    extends TypeParameterType {
-
-    val arguments: Seq[TypeParameterType] = typeParameter.typeParameters.map(LazyTpt(_, maybeSubstitutor))
-
-    lazy val lowerType: ScType = lift(typeParameter.lowerType)
-
-    lazy val upperType: ScType = lift(typeParameter.upperType)
-
-    def psiTypeParameter: PsiTypeParameter = typeParameter.psiTypeParameter
-
-    private def lift(tp: ScType): ScType = maybeSubstitutor match {
-      case Some(s) => s.subst(tp)
-      case _ => tp
-    }
+  object ofPsi {
+    def unapply(tp: TypeParameterType): Option[PsiTypeParameter] = Some(tp.psiTypeParameter)
   }
 
-  private case class StrictTpt(arguments: Seq[TypeParameterType],
+  private case class LazyTpt(typeParameter: TypeParameter, substitutor: ScSubstitutor = ScSubstitutor.empty)
+    extends TypeParameterType {
+
+    val arguments: Seq[TypeParameterType] = typeParameter.typeParameters.map(LazyTpt(_, substitutor))
+
+    lazy val lowerType: ScType = substitutor.subst(typeParameter.lowerType)
+
+    lazy val upperType: ScType = substitutor.subst(typeParameter.upperType)
+  }
+
+  private case class StrictTpt(typeParameter: TypeParameter,
+                               arguments: Seq[TypeParameterType],
                                override val lowerType: ScType,
-                               override val upperType: ScType,
-                               psiTypeParameter: PsiTypeParameter) extends TypeParameterType
+                               override val upperType: ScType) extends TypeParameterType
 }

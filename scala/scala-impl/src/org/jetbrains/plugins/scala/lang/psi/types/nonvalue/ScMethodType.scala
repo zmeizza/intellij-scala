@@ -221,22 +221,22 @@ case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeP
 
   override def removeAbstracts = ScTypePolymorphicType(internalType.removeAbstracts,
     typeParameters.map {
-      case TypeParameter(parameters, lowerType, upperType, psiTypeParameter) =>
-        TypeParameter(parameters, // todo: ?
+      case TypeParameter(psiTypeParameter, parameters, lowerType, upperType) =>
+        TypeParameter(psiTypeParameter,
+          parameters,// todo: ?
           lowerType.removeAbstracts,
-          upperType.removeAbstracts,
-          psiTypeParameter)
+          upperType.removeAbstracts)
     })
 
   override def updateSubtypes(updates: Seq[Update], visited: Set[ScType]): ScType = {
     ScTypePolymorphicType(
       internalType.recursiveUpdateImpl(updates, visited),
       typeParameters.map {
-        case TypeParameter(parameters, lowerType, upperType, psiTypeParameter) =>
-          TypeParameter(parameters, // TODO: ?
+        case TypeParameter(psiTypeParameter, parameters, lowerType, upperType) =>
+          TypeParameter(psiTypeParameter,
+            parameters,// TODO: ?
             lowerType.recursiveUpdateImpl(updates, visited, isLazySubtype = true),
-            upperType.recursiveUpdateImpl(updates, visited, isLazySubtype = true),
-            psiTypeParameter)
+            upperType.recursiveUpdateImpl(updates, visited, isLazySubtype = true))
       })
   }
 
@@ -250,11 +250,11 @@ case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeP
 
         ScTypePolymorphicType(innerUpdate(internalType, v),
           typeParameters.map {
-            case TypeParameter(parameters, lowerType, upperType, psiTypeParameter) =>
-              TypeParameter(parameters, // TODO: ?
+            case TypeParameter(psiTypeParameter, parameters, lowerType, upperType) =>
+              TypeParameter(psiTypeParameter,
+                parameters,// TODO: ?
                 innerUpdate(lowerType, -v),
-                innerUpdate(upperType, v),
-                psiTypeParameter)
+                innerUpdate(upperType, v))
           })
     }
   }

@@ -207,14 +207,14 @@ abstract class BaseProcessor(val kinds: Set[ResolveTargets.Value])
         }
       case ScDesignatorType(e) =>
         processElement(e, ScSubstitutor.empty, place, state)
-      case TypeParameterType(Nil, _, upper, _) =>
+      case TypeParameterType(_, Nil, _, upper) =>
         processTypeImpl(upper, place, state, updateWithProjectionSubst = false)
       case j: JavaArrayType =>
         implicit val elementScope = place.elementScope
         processTypeImpl(j.getParameterizedType.getOrElse(return true), place, state)
       case p@ParameterizedType(designator, typeArgs) =>
         designator match {
-          case tpt@TypeParameterType(_, _, upper, _) =>
+          case tpt@TypeParameterType(_, _, _, upper) =>
             if (recState.visitedTypeParameter.contains(tpt)) return true
             val newState = state.put(ScSubstitutor.key, ScSubstitutor(p))
             val substedType = p.substitutor.subst(ParameterizedType(upper, typeArgs))

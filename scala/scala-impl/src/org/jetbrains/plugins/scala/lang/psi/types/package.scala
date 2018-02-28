@@ -253,7 +253,7 @@ package object types {
           }
         case ScExistentialType(quantified, _) =>
           extractFrom(quantified, visitedAliases)
-        case TypeParameterType(_, _, _, psiTypeParameter) =>
+        case TypeParameterType.ofPsi(psiTypeParameter) =>
           filter(psiTypeParameter, ScSubstitutor.empty)
         case _ => None
       }
