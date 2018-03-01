@@ -2,7 +2,6 @@ package org.jetbrains.plugins.scala.lang.psi.types.api
 
 import com.intellij.psi.PsiTypeParameter
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.ScTypeParam
-import org.jetbrains.plugins.scala.lang.psi.types.recursiveUpdate.ScSubstitutor
 import org.jetbrains.plugins.scala.lang.psi.types.result._
 import org.jetbrains.plugins.scala.lang.psi.types.{NamedType, ScType, ScUndefinedSubstitutor}
 import org.jetbrains.plugins.scala.project.ProjectContext
@@ -49,11 +48,8 @@ class TypeParameterType private (val typeParameter: TypeParameter)
 }
 
 object TypeParameterType {
-  def apply(tp: TypeParameter, substitutor: ScSubstitutor = ScSubstitutor.empty): TypeParameterType =
+  def apply(tp: TypeParameter): TypeParameterType =
     new TypeParameterType(tp)
-
-  def apply(psiTp: PsiTypeParameter, substitutor: ScSubstitutor): TypeParameterType =
-    new TypeParameterType(TypeParameter(psiTp))
 
   def apply(psiTp: PsiTypeParameter): TypeParameterType =
     new TypeParameterType(TypeParameter(psiTp))

@@ -1048,7 +1048,7 @@ object ScalaPsiUtil {
       }
 
       def substitute(typeParameter: PsiTypeParameter): PsiType = {
-        substitutor.subst(TypeParameterType(typeParameter, substitutor)).toPsiType
+        substitutor.subst(TypeParameterType(typeParameter)).toPsiType
       }
 
       def putAll(another: PsiSubstitutor): PsiSubstitutor = PsiSubstitutor.EMPTY
