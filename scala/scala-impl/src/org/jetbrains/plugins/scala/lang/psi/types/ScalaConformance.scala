@@ -15,7 +15,6 @@ import org.jetbrains.plugins.scala.lang.psi.api.statements.params._
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScTypeParametersOwner
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.ScTypeDefinition
 import org.jetbrains.plugins.scala.lang.psi.impl.toplevel.synthetic.ScSyntheticClass
-import org.jetbrains.plugins.scala.lang.psi.light.scala.ScExistentialLightTypeParam
 import org.jetbrains.plugins.scala.lang.psi.types.api._
 import org.jetbrains.plugins.scala.lang.psi.types.api.designator.{ScDesignatorType, ScProjectionType, ScThisType}
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{ScMethodType, ScTypePolymorphicType}
@@ -86,22 +85,16 @@ trait ScalaConformance extends api.Conformance {
                              visited: Set[PsiClass], checkWeak: Boolean): (Boolean, ScUndefinedSubstitutor) = {
     var undefinedSubst = _undefinedSubst
 
-    def addAbstract(upper: ScType, lower: ScType, tp: ScType, alternateTp: ScType): Boolean = {
+    def addAbstract(upper: ScType, lower: ScType, tp: ScType): Boolean = {
       if (!upper.equiv(Any)) {
         val t = conformsInner(upper, tp, visited, undefinedSubst, checkWeak)
-        if (!t._1) {
-          val t = conformsInner(upper, alternateTp, visited, undefinedSubst, checkWeak)
-          if (!t._1) return false
-          else undefinedSubst = t._2
-        } else undefinedSubst = t._2
+        if (!t._1) return false
+        undefinedSubst = t._2
       }
       if (!lower.equiv(Nothing)) {
         val t = conformsInner(tp, lower, visited, undefinedSubst, checkWeak)
-        if (!t._1) {
-          val t = conformsInner(alternateTp, lower, visited, undefinedSubst, checkWeak)
-          if (!t._1) return false
-          else undefinedSubst = t._2
-        } else undefinedSubst = t._2
+        if (!t._1) return false
+        undefinedSubst = t._2
       }
       true
     }
@@ -132,15 +125,11 @@ trait ScalaConformance extends api.Conformance {
               val y = addParam(parameterType, lt, undefinedSubst)
               if (!y._1) return (false, undefinedSubst)
               undefinedSubst = y._2
-            case (ScAbstractType(tpt, lower, upper), r) =>
-              val (right, alternateRight) = (r.withArgsFrom(tpt), r)
-
-              if (!addAbstract(upper, lower, right, alternateRight))
+            case (ScAbstractType(tpt, lower, upper), right) =>
+              if (!addAbstract(upper, lower, right))
                 return (false, undefinedSubst)
-            case (l, ScAbstractType(tpt, lower, upper)) =>
-              val (left, alternateLeft) = (l.withArgsFrom(tpt), l)
-
-              if (!addAbstract(upper, lower, left, alternateLeft))
+            case (left, ScAbstractType(tpt, lower, upper)) =>
+              if (!addAbstract(upper, lower, left))
                 return (false, undefinedSubst)
             case _ =>
               val t = argsPair._1.equiv(argsPair._2, undefinedSubst, falseUndef = false)
@@ -187,15 +176,13 @@ trait ScalaConformance extends api.Conformance {
 
     trait AbstractVisitor extends ScalaTypeVisitor {
       override def visitAbstractType(a: ScAbstractType) {
-        val left = l.withArgsFrom(a.parameterType)
-
         if (!a.lower.equiv(Nothing)) {
-          result = conformsInner(left, a.lower, visited, undefinedSubst, checkWeak)
+          result = conformsInner(l, a.lower, visited, undefinedSubst, checkWeak)
         } else {
           result = (true, undefinedSubst)
         }
         if (result._1 && !a.upper.equiv(Any)) {
-          val t = conformsInner(a.upper, left, visited, result._2, checkWeak)
+          val t = conformsInner(a.upper, l, visited, result._2, checkWeak)
           if (t._1) result = t //this is optionally
         }
       }
@@ -715,9 +702,7 @@ trait ScalaConformance extends api.Conformance {
         case JavaArrayType(arg2) =>
           val argsPair = (arg1, arg2)
           argsPair match {
-            case (ScAbstractType(tpt, lower, upper), r) =>
-              val right = r.withArgsFrom(tpt)
-
+            case (ScAbstractType(tpt, lower, upper), right) =>
               if (!upper.equiv(Any)) {
                 val t = conformsInner(upper, right, visited, undefinedSubst, checkWeak)
                 if (!t._1) {
@@ -734,8 +719,7 @@ trait ScalaConformance extends api.Conformance {
                 }
                 undefinedSubst = t._2
               }
-            case (l, ScAbstractType(tpt, lower, upper)) =>
-              val left = l.withArgsFrom(tpt)
+            case (left, ScAbstractType(tpt, lower, upper)) =>
               if (!upper.equiv(Any)) {
                 val t = conformsInner(upper, left, visited, undefinedSubst, checkWeak)
                 if (!t._1) {
@@ -774,8 +758,7 @@ trait ScalaConformance extends api.Conformance {
             val arg = a1.argument
             val argsPair = (arg, args.head)
             argsPair match {
-              case (ScAbstractType(tpt, lower, upper), r) =>
-                val right = r.withArgsFrom(tpt)
+              case (ScAbstractType(tpt, lower, upper), right) =>
                 if (!upper.equiv(Any)) {
                   val t = conformsInner(upper, right, visited, undefinedSubst, checkWeak)
                   if (!t._1) {
@@ -792,8 +775,7 @@ trait ScalaConformance extends api.Conformance {
                   }
                   undefinedSubst = t._2
                 }
-              case (l, ScAbstractType(tpt, lower, upper)) =>
-                val left = l.withArgsFrom(tpt)
+              case (left, ScAbstractType(tpt, lower, upper)) =>
                 if (!upper.equiv(Any)) {
                   val t = conformsInner(upper, left, visited, undefinedSubst, checkWeak)
                   if (!t._1) {
@@ -1061,8 +1043,7 @@ trait ScalaConformance extends api.Conformance {
             val arg = r.asInstanceOf[JavaArrayType].argument
             val argsPair = (arg, args.head)
             argsPair match {
-              case (ScAbstractType(tpt, lower, upper), r) =>
-                val right = r.withArgsFrom(tpt)
+              case (ScAbstractType(tpt, lower, upper), right) =>
                 if (!upper.equiv(Any)) {
                   val t = conformsInner(upper, right, visited, undefinedSubst, checkWeak)
                   if (!t._1) {
@@ -1079,8 +1060,7 @@ trait ScalaConformance extends api.Conformance {
                   }
                   undefinedSubst = t._2
                 }
-              case (l, ScAbstractType(tpt, lower, upper)) =>
-                val left = l.withArgsFrom(tpt)
+              case (left, ScAbstractType(tpt, lower, upper)) =>
                 if (!upper.equiv(Any)) {
                   val t = conformsInner(upper, left, visited, undefinedSubst, checkWeak)
                   if (!t._1) {
@@ -1429,11 +1409,10 @@ trait ScalaConformance extends api.Conformance {
       val rightVisitor = new ValDesignatorSimplification with UndefinedSubstVisitor {}
       r.visitType(rightVisitor)
       if (result != null) return
-      val right = r.withArgsFrom(a.parameterType)
 
-      result = conformsInner(a.upper, right, visited, undefinedSubst, checkWeak)
+      result = conformsInner(a.upper, r, visited, undefinedSubst, checkWeak)
       if (result._1) {
-        val t = conformsInner(right, a.lower, visited, result._2, checkWeak)
+        val t = conformsInner(r, a.lower, visited, result._2, checkWeak)
         if (t._1) result = t
       }
     }
