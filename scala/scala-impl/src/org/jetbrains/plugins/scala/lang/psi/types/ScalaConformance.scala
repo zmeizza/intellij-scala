@@ -125,10 +125,10 @@ trait ScalaConformance extends api.Conformance {
               val y = addParam(parameterType, lt, undefinedSubst)
               if (!y._1) return (false, undefinedSubst)
               undefinedSubst = y._2
-            case (ScAbstractType(tpt, lower, upper), right) =>
+            case (ScAbstractType(_, lower, upper), right) =>
               if (!addAbstract(upper, lower, right))
                 return (false, undefinedSubst)
-            case (left, ScAbstractType(tpt, lower, upper)) =>
+            case (left, ScAbstractType(_, lower, upper)) =>
               if (!addAbstract(upper, lower, left))
                 return (false, undefinedSubst)
             case _ =>
@@ -191,8 +191,8 @@ trait ScalaConformance extends api.Conformance {
     trait ParameterizedAbstractVisitor extends ScalaTypeVisitor {
       override def visitParameterizedType(p: ParameterizedType) {
         p.designator match {
-          case ScAbstractType(parameterType, lowerBound, _) =>
-            val subst = ScSubstitutor.bind(parameterType.typeParameters, p.typeArguments)
+          case ScAbstractType(typeParameter, lowerBound, _) =>
+            val subst = ScSubstitutor.bind(typeParameter.typeParameters, p.typeArguments)
             val lower: ScType =
               subst.subst(lowerBound) match {
                 case ParameterizedType(lower, _) => ScParameterizedType(lower, p.typeArguments)
@@ -702,7 +702,7 @@ trait ScalaConformance extends api.Conformance {
         case JavaArrayType(arg2) =>
           val argsPair = (arg1, arg2)
           argsPair match {
-            case (ScAbstractType(tpt, lower, upper), right) =>
+            case (ScAbstractType(_, lower, upper), right) =>
               if (!upper.equiv(Any)) {
                 val t = conformsInner(upper, right, visited, undefinedSubst, checkWeak)
                 if (!t._1) {
@@ -719,7 +719,7 @@ trait ScalaConformance extends api.Conformance {
                 }
                 undefinedSubst = t._2
               }
-            case (left, ScAbstractType(tpt, lower, upper)) =>
+            case (left, ScAbstractType(_, lower, upper)) =>
               if (!upper.equiv(Any)) {
                 val t = conformsInner(upper, left, visited, undefinedSubst, checkWeak)
                 if (!t._1) {
@@ -758,7 +758,7 @@ trait ScalaConformance extends api.Conformance {
             val arg = a1.argument
             val argsPair = (arg, args.head)
             argsPair match {
-              case (ScAbstractType(tpt, lower, upper), right) =>
+              case (ScAbstractType(_, lower, upper), right) =>
                 if (!upper.equiv(Any)) {
                   val t = conformsInner(upper, right, visited, undefinedSubst, checkWeak)
                   if (!t._1) {
@@ -775,7 +775,7 @@ trait ScalaConformance extends api.Conformance {
                   }
                   undefinedSubst = t._2
                 }
-              case (left, ScAbstractType(tpt, lower, upper)) =>
+              case (left, ScAbstractType(_, lower, upper)) =>
                 if (!upper.equiv(Any)) {
                   val t = conformsInner(upper, left, visited, undefinedSubst, checkWeak)
                   if (!t._1) {
@@ -822,7 +822,7 @@ trait ScalaConformance extends api.Conformance {
 
       p.designator match {
         case a: ScAbstractType =>
-          val subst = ScSubstitutor.bind(a.parameterType.typeParameters, p.typeArguments)
+          val subst = ScSubstitutor.bind(a.typeParameter.typeParameters, p.typeArguments)
           val upper: ScType =
             subst.subst(a.upper) match {
               case ParameterizedType(up, _) => ScParameterizedType(up, p.typeArguments)
@@ -965,7 +965,7 @@ trait ScalaConformance extends api.Conformance {
                   undefinedSubst, visited, checkWeak)
                 result = if (t._1) {
                   val abstractedTypeParams = abstracted.zipWithIndex.map {
-                    case (aType, i) => TypeParameter.light("p" + i + "$$", Seq(), Nothing, Any)
+                    case (_, i) => TypeParameter.light("p" + i + "$$", Seq(), Nothing, Any)
                   }
                   addParam(parameterType, ScTypePolymorphicType(ScParameterizedType(des2,
                     captured ++ abstractedTypeParams.map(TypeParameterType(_))), abstractedTypeParams), t._2)
@@ -1020,7 +1020,7 @@ trait ScalaConformance extends api.Conformance {
       if (result != null) {
         //sometimes when the above part has failed, we still have to check for alias
         if (!result._1) r.isAliasType match {
-          case Some(aliasType) =>
+          case Some(_) =>
             rightVisitor = new ParameterizedAliasVisitor with TypeParameterTypeVisitor {}
             r.visitType(rightVisitor)
           case _ =>
@@ -1043,7 +1043,7 @@ trait ScalaConformance extends api.Conformance {
             val arg = r.asInstanceOf[JavaArrayType].argument
             val argsPair = (arg, args.head)
             argsPair match {
-              case (ScAbstractType(tpt, lower, upper), right) =>
+              case (ScAbstractType(_, lower, upper), right) =>
                 if (!upper.equiv(Any)) {
                   val t = conformsInner(upper, right, visited, undefinedSubst, checkWeak)
                   if (!t._1) {
@@ -1060,7 +1060,7 @@ trait ScalaConformance extends api.Conformance {
                   }
                   undefinedSubst = t._2
                 }
-              case (left, ScAbstractType(tpt, lower, upper)) =>
+              case (left, ScAbstractType(_, lower, upper)) =>
                 if (!upper.equiv(Any)) {
                   val t = conformsInner(upper, left, visited, undefinedSubst, checkWeak)
                   if (!t._1) {
