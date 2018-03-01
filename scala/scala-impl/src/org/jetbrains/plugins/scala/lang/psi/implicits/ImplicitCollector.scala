@@ -360,21 +360,21 @@ class ImplicitCollector(place: PsiElement,
     }
   }
 
-  private def inferValueType(tp: ScType): (ScType, Seq[TypeParameter]) = {
+  private def inferValueType(tp: ScType): (ScType, Seq[ScAbstractType]) = {
     if (isExtensionConversion) {
       tp match {
-        case ScTypePolymorphicType(internalType, typeParams) =>
+        case ScTypePolymorphicType(internalType, args) =>
           val filteredTypeParams =
-            typeParams.filter(tp => !tp.lowerType.equiv(Nothing) || !tp.upperType.equiv(Any))
+            args.filter(tp => !tp.lowerType.equiv(Nothing) || !tp.upperType.equiv(Any))
           val newPolymorphicType = ScTypePolymorphicType(internalType, filteredTypeParams)
           val updated = newPolymorphicType.inferValueType.updateRecursively {
             case u: UndefinedType => u.inferValueType
           }
-          (updated, typeParams)
+          (updated, args)
         case _ => (tp.inferValueType, Seq.empty)
       }
     } else tp match {
-      case ScTypePolymorphicType(_, typeParams) => (tp.inferValueType, typeParams)
+      case ScTypePolymorphicType(_, args) => (tp.inferValueType, args)
       case _ => (tp.inferValueType, Seq.empty)
     }
   }
@@ -403,17 +403,17 @@ class ImplicitCollector(place: PsiElement,
     }
 
     def noImplicitParametersResult(nonValueType: ScType): Some[Candidate] = {
-      val (valueType, typeParams) = inferValueType(nonValueType)
+      val (valueType, typeArgs) = inferValueType(nonValueType)
       val result = c.copy(
         implicitParameterType = Some(valueType),
         implicitReason = OkResult,
-        unresolvedTypeParameters = Some(typeParams)
+        unresolvedTypeParameters = Some(typeArgs)
       )
       Some(result, subst)
     }
 
     def fullResult(resType: ScType, implicitParams: Seq[ScalaResolveResult]): Some[Candidate] = {
-      val (valueType, typeParams) = inferValueType(resType)
+      val (valueType, abstractArgs) = inferValueType(resType)
 
       val allImportsUsed = implicitParams.map(_.importsUsed).foldLeft(c.importsUsed)(_ ++ _)
 
@@ -421,7 +421,7 @@ class ImplicitCollector(place: PsiElement,
         implicitParameterType = Some(valueType),
         implicitParameters = implicitParams,
         implicitReason = OkResult,
-        unresolvedTypeParameters = Some(typeParams),
+        unresolvedTypeParameters = Some(abstractArgs),
         importsUsed = allImportsUsed
       )
       Some(result, subst)
@@ -489,11 +489,11 @@ class ImplicitCollector(place: PsiElement,
         }.map {
           subst.subst
         }.getOrElse(ret)
-        val polymorphicTypeParameters = typeParameters.map(TypeParameter(_))
+        val abstractArgs = typeParameters.map(ScAbstractType(_))
 
         val nonValueType0: ScType =
-          if (polymorphicTypeParameters.isEmpty) methodType
-          else ScTypePolymorphicType(methodType, polymorphicTypeParameters)
+          if (abstractArgs.isEmpty) methodType
+          else ScTypePolymorphicType(methodType, abstractArgs)
 
         try updateImplicitParameters(c, nonValueType0, implicitClause.isDefined)
         catch {

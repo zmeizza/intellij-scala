@@ -248,8 +248,8 @@ trait ScalaTypePresentation extends api.TypePresentation {
           compoundTypeText(c)
         case ex: ScExistentialType if ex != null =>
           existentialTypeText(ex, checkWildcard, needDotType)
-        case ScTypePolymorphicType(internalType, typeParameters) =>
-          typeParameters.map(tp => {
+        case ScTypePolymorphicType(internalType, typeArgs) =>
+          typeArgs.map(tp => {
             val lowerBound = if (tp.lowerType.equiv(Nothing)) "" else " >: " + tp.lowerType.toString
             val upperBound = if (tp.upperType.equiv(Any)) "" else " <: " + tp.upperType.toString
             tp.name + lowerBound + upperBound

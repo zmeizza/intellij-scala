@@ -5,6 +5,7 @@ package types
 
 import java.util.Objects
 
+import com.intellij.psi.PsiTypeParameter
 import org.jetbrains.plugins.scala.lang.psi.types.api._
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.NonValueType
 import org.jetbrains.plugins.scala.lang.psi.types.recursiveUpdate.{RecursiveUpdateException, Update}
@@ -29,6 +30,11 @@ case class ScAbstractType(typeParameter: TypeParameter, lower: ScType, upper: Sc
 
     hash
   }
+
+  def name: String = typeParameter.name
+
+  def lowerType: ScType = lower
+  def upperType: ScType = upper
 
   override def equals(obj: scala.Any): Boolean = {
     obj match {
@@ -93,4 +99,9 @@ case class ScAbstractType(typeParameter: TypeParameter, lower: ScType, upper: Sc
     case scalaVisitor: ScalaTypeVisitor => scalaVisitor.visitAbstractType(this)
     case _ =>
   }
+}
+
+object ScAbstractType {
+  def apply(tp: TypeParameter): ScAbstractType = ScAbstractType(tp, tp.lowerType, tp.upperType)
+  def apply(tp: PsiTypeParameter): ScAbstractType = ScAbstractType(TypeParameter(tp))
 }

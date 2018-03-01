@@ -116,27 +116,27 @@ class ScConstructorImpl(node: ASTNode) extends ScalaPsiElementImpl(node) with Sc
           val methodType = method.methodTypeProvider(elementScope).methodType(Some(tp))
           subst.subst(methodType)
       }
-      val typeParameters: Seq[TypeParameter] = r.getActualElement match {
+      val typeArgs: Seq[ScAbstractType] = r.getActualElement match {
         case tp: ScTypeParametersOwner if tp.typeParameters.nonEmpty =>
-          tp.typeParameters.map(TypeParameter(_))
+          tp.typeParameters.map(ScAbstractType(_))
         case ptp: PsiTypeParameterListOwner if ptp.getTypeParameters.nonEmpty =>
-          ptp.getTypeParameters.toSeq.map(TypeParameter(_))
+          ptp.getTypeParameters.toSeq.map(ScAbstractType(_))
         case _ => return Right(res)
       }
       s.getParent match {
         case p: ScParameterizedTypeElement =>
-          val appSubst = ScSubstitutor.bind(typeParameters, p.typeArgList.typeArgs)(_.calcType)
+          val appSubst = ScSubstitutor.bind(typeArgs, p.typeArgList.typeArgs)(_.calcType)
           Right(appSubst.subst(res))
         case _ =>
-          var nonValueType = ScTypePolymorphicType(res, typeParameters)
+          var nonValueType = ScTypePolymorphicType(res, typeArgs)
           expectedType match {
             case Some(expected) =>
               try {
                 nonValueType = InferUtil.localTypeInference(nonValueType.internalType,
                   Seq(Parameter(expected, isRepeated = false, index = 0)),
-                  Seq(new Expression(ScSubstitutor.bind(nonValueType.typeParameters)(UndefinedType(_)).
+                  Seq(new Expression(ScSubstitutor.bind(nonValueType.typeArguments)(UndefinedType(_)).
                     subst(subst.subst(tp).inferValueType))),
-                  nonValueType.typeParameters, shouldUndefineParameters = false, filterTypeParams = false)
+                  nonValueType.typeArguments, shouldUndefineParameters = false, filterTypeParams = false)
               } catch {
                 case _: SafeCheckException => //ignore
               }

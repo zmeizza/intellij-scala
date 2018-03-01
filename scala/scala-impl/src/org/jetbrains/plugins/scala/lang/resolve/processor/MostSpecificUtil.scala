@@ -117,19 +117,18 @@ case class MostSpecificUtil(elem: PsiElement, length: Int) {
         val (t1, t2) = (r1.substitutor.subst(getType(m1, r1.implicitCase)), r2.substitutor.subst(getType(m2, r2.implicitCase)))
         def calcParams(tp: ScType, existential: Boolean): Either[Seq[Parameter], ScType] = {
 
-          def toExistentialArg(tp: TypeParameter) =
-            ScExistentialArgument(tp.name, List.empty /* todo? */ , tp.lowerType, tp.upperType)
+          def toExistentialArg(a: ScAbstractType, s: ScSubstitutor = ScSubstitutor.empty) =
+            ScExistentialArgument(a.typeParameter.name, List.empty /* todo? */ , s.subst(a.lowerType), s.subst(a.upperType))
 
           tp match {
             case ScMethodType(_, params, _) => Left(params)
-            case ScTypePolymorphicType(ScMethodType(_, params, _), typeParams) =>
+            case ScTypePolymorphicType(ScMethodType(_, params, _), typeArgs) =>
               if (!existential) {
-                val s: ScSubstitutor = ScSubstitutor.bind(typeParams)(UndefinedType(_))
+                val s: ScSubstitutor = ScSubstitutor.bind(typeArgs)(UndefinedType(_))
                 Left(params.map(p => p.copy(paramType = s.subst(p.paramType))))
               } else {
-                val s = ScSubstitutor.bind(typeParams)(toExistentialArg)
-                val arguments = typeParams.toList.map(tp =>
-                  ScExistentialArgument(tp.name, List.empty /* todo? */ , s.subst(tp.lowerType), s.subst(tp.upperType)))
+                val s = ScSubstitutor.bind(typeArgs)(toExistentialArg(_))
+                val arguments = typeArgs.toList.map(toExistentialArg(_, s))
                 Left(params.map(p => p.copy(paramType = ScExistentialType(s.subst(p.paramType), arguments))))
               }
             case ScTypePolymorphicType(internal, typeParams) =>
@@ -137,9 +136,8 @@ case class MostSpecificUtil(elem: PsiElement, length: Int) {
                 val s: ScSubstitutor = ScSubstitutor.bind(typeParams)(UndefinedType(_))
                 Right(s.subst(internal))
               } else {
-                val s = ScSubstitutor.bind(typeParams)(toExistentialArg)
-                val arguments = typeParams.toList.map(tp =>
-                  ScExistentialArgument(tp.name, List.empty /* todo? */ , s.subst(tp.lowerType), s.subst(tp.upperType)))
+                val s = ScSubstitutor.bind(typeParams)(toExistentialArg(_))
+                val arguments = typeParams.toList.map(toExistentialArg(_, s))
                 Right(ScExistentialType(s.subst(internal), arguments))
               }
             case _ => Right(tp)

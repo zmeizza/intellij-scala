@@ -4,7 +4,7 @@ import com.intellij.psi.PsiTypeParameter
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.TypeParamIdOwner
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.NonValueType
 import org.jetbrains.plugins.scala.lang.psi.types.recursiveUpdate.ScSubstitutor
-import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScUndefinedSubstitutor}
+import org.jetbrains.plugins.scala.lang.psi.types.{ScAbstractType, ScType, ScUndefinedSubstitutor}
 import org.jetbrains.plugins.scala.project.ProjectContext
 
 /**
@@ -47,5 +47,7 @@ object UndefinedType {
 
   def apply(typeParameterType: TypeParameterType): UndefinedType =
     UndefinedType(typeParameterType.typeParameter)
+
+  def apply(a: ScAbstractType): UndefinedType = UndefinedType(a.typeParameter)
 
 }

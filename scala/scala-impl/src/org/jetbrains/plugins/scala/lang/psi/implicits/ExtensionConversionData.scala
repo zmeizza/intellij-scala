@@ -7,7 +7,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.InferUtil.extractImplicitParamet
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScExpression
 import org.jetbrains.plugins.scala.lang.psi.api.statements.ScFunction
 import org.jetbrains.plugins.scala.lang.psi.types.api.{FunctionType, TypeParameter, ValType}
-import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScUndefinedSubstitutor}
+import org.jetbrains.plugins.scala.lang.psi.types.{ScAbstractType, ScType, ScUndefinedSubstitutor}
 import org.jetbrains.plugins.scala.lang.resolve.processor.{BaseProcessor, MethodResolveProcessor, ResolveProcessor}
 import org.jetbrains.plugins.scala.lang.resolve.{ResolveTargets, ScalaResolveResult}
 
@@ -32,7 +32,7 @@ case class ExtensionConversionData(baseExpr: ScExpression,
 }
 
 object ExtensionConversionHelper {
-  def specialExtractParameterType(resolveResult: ScalaResolveResult): Option[(ScType, Seq[TypeParameter])] = {
+  def specialExtractParameterType(resolveResult: ScalaResolveResult): Option[(ScType, Seq[ScAbstractType])] = {
     val result = extractImplicitParameterType(resolveResult).flatMap {
       case functionType@FunctionType(_, _) => Some(functionType)
       case implicitParameterType =>
@@ -62,21 +62,17 @@ object ExtensionConversionHelper {
       _._1
     }.filter {
       case _: ValType if isHardCoded => false
-      case _ => true
-    }.filter {
-      checkHasMethodFast(data, _)
+      case tp => checkHasMethodFast(data, tp)
     }.flatMap { tp =>
       if (!noApplicability && processor.isInstanceOf[MethodResolveProcessor]) {
-        val typeParams = resolveResult match {
+        val abstractArgs = resolveResult match {
           case ScalaResolveResult(function: ScFunction, _) if function.hasTypeParameters =>
-            function.typeParameters.map {
-              TypeParameter(_)
-            }
+            function.typeParameters.map(ScAbstractType(_))
           case _ => Seq.empty
         }
 
-        findInType(tp, data, typeParams).map { tp =>
-          typeParams match {
+        findInType(tp, data, abstractArgs).map { tp =>
+          abstractArgs match {
             case Seq() => candidate
             case _ => update(candidate, tp)
           }
@@ -101,7 +97,7 @@ object ExtensionConversionHelper {
     }
   }
 
-  private def findInType(tp: ScType, data: ExtensionConversionData, typeParams: Seq[TypeParameter]): Option[ScalaResolveResult] = {
+  private def findInType(tp: ScType, data: ExtensionConversionData, typeParams: Seq[ScAbstractType]): Option[ScalaResolveResult] = {
     import data._
 
     Option(processor).collect {

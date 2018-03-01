@@ -2,7 +2,7 @@ package org.jetbrains.plugins.scala
 package lang.psi.types.nonvalue
 
 import com.intellij.psi.PsiParameter
-import org.jetbrains.plugins.scala.extensions.PsiParameterExt
+import org.jetbrains.plugins.scala.extensions.{PsiParameterExt, TraversableExt}
 import org.jetbrains.plugins.scala.lang.psi.ElementScope
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.{ScParameter, TypeParamIdOwner}
 import org.jetbrains.plugins.scala.lang.psi.types._
@@ -155,7 +155,7 @@ case class ScMethodType(returnType: ScType, params: Seq[Parameter], isImplicit: 
   }
 }
 
-case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeParameter]) extends NonValueType {
+case class ScTypePolymorphicType(internalType: ScType, typeArguments: Seq[ScAbstractType]) extends NonValueType {
 
   if (internalType.isInstanceOf[ScTypePolymorphicType]) {
     throw new IllegalArgumentException("Polymorphic type can't have wrong internal type")
@@ -166,7 +166,7 @@ case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeP
   def polymorphicTypeSubstitutor: ScSubstitutor = polymorphicTypeSubstitutor(inferValueType = false)
 
   def polymorphicTypeSubstitutor(inferValueType: Boolean): ScSubstitutor =
-    ScSubstitutor.bind(typeParameters) { tp =>
+    ScSubstitutor.bind(typeArguments) { tp =>
       var contraVariant = 0
       var coOrInVariant = 0
       internalType.recursiveVarianceUpdate {
@@ -192,42 +192,36 @@ case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeP
     }
 
   def abstractTypeSubstitutor: ScSubstitutor = {
-    ScSubstitutor.bind(typeParameters){tp =>
+    ScSubstitutor.bind(typeArguments){ tp =>
       val lowerType: ScType = if (hasRecursiveTypeParameters(tp.lowerType)) Nothing else tp.lowerType
       val upperType: ScType = if (hasRecursiveTypeParameters(tp.upperType)) Any else tp.upperType
-      ScAbstractType(tp, lowerType, upperType)
+      ScAbstractType(tp.typeParameter, lowerType, upperType)
     }
   }
 
   def abstractOrLowerTypeSubstitutor: ScSubstitutor =
-    ScSubstitutor.bind(typeParameters) { tp =>
+    ScSubstitutor.bind(typeArguments) { tp =>
       val lowerType: ScType = if (hasRecursiveTypeParameters(tp.lowerType)) Nothing else tp.lowerType
       val upperType: ScType = if (hasRecursiveTypeParameters(tp.upperType)) Any else tp.upperType
 
-      if (lowerType.equiv(Nothing)) ScAbstractType(tp, lowerType, upperType)
+      if (lowerType.equiv(Nothing)) ScAbstractType(tp.typeParameter, lowerType, upperType)
       else lowerType
     }
 
-  private lazy val typeParamIds = typeParameters.map(_.typeParamId).toSet
+  private lazy val typeParamIds = typeArguments.map(_.typeParamId).toSet
 
   private def hasRecursiveTypeParameters(typez: ScType): Boolean = typez.hasRecursiveTypeParameters(typeParamIds)
-
-  def typeParameterTypeSubstitutor: ScSubstitutor =
-    ScSubstitutor.bind(typeParameters)(TypeParameterType(_))
 
   def inferValueType: ValueType = {
     polymorphicTypeSubstitutor(inferValueType = true).subst(internalType.inferValueType).asInstanceOf[ValueType]
   }
 
-  override def removeAbstracts = ScTypePolymorphicType(
-    internalType.removeAbstracts,
-    typeParameters.update(_.removeAbstracts)
-  )
+  override def removeAbstracts: ScType = inferValueType
 
   override def updateSubtypes(updates: Seq[Update], visited: Set[ScType]): ScType = {
-    ScTypePolymorphicType(
+    ScTypePolymorphicType.create(
       internalType.recursiveUpdateImpl(updates, visited),
-      typeParameters.update(_.recursiveUpdateImpl(updates, visited, isLazySubtype = true))
+      typeArguments.map(_.recursiveUpdateImpl(updates, visited))
     )
   }
 
@@ -236,9 +230,9 @@ case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeP
     update(this, v, data) match {
       case (true, res, _) => res
       case (_, _, newData) =>
-        ScTypePolymorphicType(
+        ScTypePolymorphicType.create(
           internalType.recursiveVarianceUpdateModifiable(newData, update, v),
-          typeParameters.updateWithVariance(_.recursiveVarianceUpdateModifiable(newData, update, _), -v)
+          typeArguments.map(_.recursiveVarianceUpdateModifiable(newData, update, -v))
         )
     }
   }
@@ -247,18 +241,18 @@ case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeP
     var undefinedSubst = uSubst
     r match {
       case p: ScTypePolymorphicType =>
-        if (typeParameters.length != p.typeParameters.length) return (false, undefinedSubst)
+        if (typeArguments.length != p.typeArguments.length) return (false, undefinedSubst)
         var i = 0
-        while (i < typeParameters.length) {
-          var t = typeParameters(i).lowerType.equiv(p.typeParameters(i).lowerType, undefinedSubst, falseUndef)
+        while (i < typeArguments.length) {
+          var t = typeArguments(i).lowerType.equiv(p.typeArguments(i).lowerType, undefinedSubst, falseUndef)
           if (!t._1) return (false, undefinedSubst)
           undefinedSubst = t._2
-          t = typeParameters(i).upperType.equiv(p.typeParameters(i).upperType, undefinedSubst, falseUndef)
+          t = typeArguments(i).upperType.equiv(p.typeArguments(i).upperType, undefinedSubst, falseUndef)
           if (!t._1) return (false, undefinedSubst)
           undefinedSubst = t._2
           i = i + 1
         }
-        val subst = ScSubstitutor.bind(typeParameters, p.typeParameters)(TypeParameterType(_))
+        val subst = ScSubstitutor.bind(typeArguments, p.typeArguments.map(_.inferValueType))
         subst.subst(internalType).equiv(p.internalType, undefinedSubst, falseUndef)
       case _ => (false, undefinedSubst)
     }
@@ -269,5 +263,11 @@ case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeP
     case _ =>
   }
 
-  override def typeDepth: Int = internalType.typeDepth.max(typeParameters.toArray.depth)
+  override def typeDepth: Int = internalType.typeDepth.max(typeArguments.map(_.typeParameter).depth)
+}
+
+object ScTypePolymorphicType {
+  def create(internal: ScType, args: Seq[ScType]): ScTypePolymorphicType = {
+    ScTypePolymorphicType(internal, args.filterBy[ScAbstractType])
+  }
 }

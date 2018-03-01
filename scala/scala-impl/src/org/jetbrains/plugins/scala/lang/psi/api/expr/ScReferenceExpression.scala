@@ -8,7 +8,7 @@ import com.intellij.psi._
 import org.jetbrains.plugins.scala.annotator.intention.ScalaImportTypeFix.TypeToImport
 import org.jetbrains.plugins.scala.lang.psi.api.base._
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiElementFactory.createExpressionFromText
-import org.jetbrains.plugins.scala.lang.psi.types.api.TypeParameter
+import org.jetbrains.plugins.scala.lang.psi.types.ScAbstractType
 import org.jetbrains.plugins.scala.lang.psi.types.result.TypeResult
 import org.jetbrains.plugins.scala.lang.resolve.processor.{BaseProcessor, CompletionProcessor, ImplicitCompletionProcessor}
 import org.jetbrains.plugins.scala.lang.resolve.{ResolvableReferenceExpression, ScalaResolveResult}
@@ -79,7 +79,7 @@ trait ScReferenceExpression extends ScalaPsiElement with ScExpression with ScRef
 
   def bindToElement(element: PsiElement, containingClass: Option[PsiClass]): PsiElement
 
-  def getPrevTypeInfoParams: Seq[TypeParameter]
+  def getPrevTypeInfoParams: Seq[ScAbstractType]
 
   def getSimpleVariants(incomplete: Boolean = true,
                         completion: Boolean = false,

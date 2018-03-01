@@ -7,6 +7,7 @@ import com.intellij.util.containers.{ConcurrentLongObjectMap, ContainerUtil}
 import org.jetbrains.plugins.scala.extensions.{ObjectExt, PsiClassExt, PsiElementExt, PsiNamedElementExt}
 import org.jetbrains.plugins.scala.lang.psi.ScalaPsiElement
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaFile
+import org.jetbrains.plugins.scala.lang.psi.types.ScAbstractType
 import org.jetbrains.plugins.scala.lang.psi.types.api.{TypeParameter, TypeParameterType}
 
 import scala.language.implicitConversions
@@ -80,6 +81,8 @@ package object params {
     implicit val typeParam: TypeParamId[TypeParameter] = t => psi.typeParamId(t.psiTypeParameter)
 
     implicit val typeParamType: TypeParamId[TypeParameterType] = t => psi.typeParamId(t.psiTypeParameter)
+
+    implicit val abstractType: TypeParamId[ScAbstractType] = t => psi.typeParamId(t.typeParameter.psiTypeParameter)
 
     implicit val long: TypeParamId[Long] = identity(_)
 

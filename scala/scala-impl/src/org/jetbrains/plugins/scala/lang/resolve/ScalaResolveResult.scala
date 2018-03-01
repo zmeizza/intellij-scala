@@ -52,7 +52,7 @@ class ScalaResolveResult(val element: PsiNamedElement,
                          val implicitParameters: Seq[ScalaResolveResult] = Seq.empty,
                          val implicitReason: ImplicitResult = NoResult,
                          val implicitSearchState: Option[ImplicitState] = None,
-                         val unresolvedTypeParameters: Option[Seq[TypeParameter]] = None) extends ResolveResult with ProjectContextOwner {
+                         val unresolvedTypeParameters: Option[Seq[ScAbstractType]] = None) extends ResolveResult with ProjectContextOwner {
   if (element == null) throw new NullPointerException("element is null")
 
   override implicit def projectContext: ProjectContext = element.getProject
@@ -107,7 +107,7 @@ class ScalaResolveResult(val element: PsiNamedElement,
            implicitParameters: Seq[ScalaResolveResult] = implicitParameters,
            implicitReason: ImplicitResult = implicitReason,
            implicitSearchState: Option[ImplicitState] = implicitSearchState,
-           unresolvedTypeParameters: Option[Seq[TypeParameter]] = unresolvedTypeParameters): ScalaResolveResult =
+           unresolvedTypeParameters: Option[Seq[ScAbstractType]] = unresolvedTypeParameters): ScalaResolveResult =
     new ScalaResolveResult(element, subst, importsUsed, nameShadow, implicitConversionClass, problems, boundClass,
       implicitConversion, implicitType, defaultParameterUsed, innerResolveResult, parentElement,
       isNamedParameter, fromType, tuplingUsed, isSetterFunction, isAssignment, notCheckedResolveResult,

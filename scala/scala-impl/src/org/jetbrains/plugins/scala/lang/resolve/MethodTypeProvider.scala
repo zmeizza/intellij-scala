@@ -11,7 +11,7 @@ import org.jetbrains.plugins.scala.lang.psi.types.api.designator.{ScDesignatorTy
 import org.jetbrains.plugins.scala.lang.psi.types.api.{TypeParameter, TypeParameterType}
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{Parameter, ScMethodType, ScTypePolymorphicType}
 import org.jetbrains.plugins.scala.lang.psi.types.recursiveUpdate.ScSubstitutor
-import org.jetbrains.plugins.scala.lang.psi.types.{ScParameterizedType, ScType}
+import org.jetbrains.plugins.scala.lang.psi.types.{ScAbstractType, ScParameterizedType, ScType}
 import org.jetbrains.plugins.scala.lang.psi.{ElementScope, ScalaPsiElement, ScalaPsiUtil}
 
 import scala.annotation.tailrec
@@ -40,7 +40,7 @@ sealed trait MethodTypeProvider[+T <: PsiElement] {
 
     val tpe =
       if (typeParams.isEmpty) methodType(returnType)
-      else ScTypePolymorphicType(methodType(returnType), typeParams.map(TypeParameter(_)))
+      else ScTypePolymorphicType(methodType(returnType), typeParams.map(ScAbstractType(_)))
     s.subst(tpe)
   }
 }

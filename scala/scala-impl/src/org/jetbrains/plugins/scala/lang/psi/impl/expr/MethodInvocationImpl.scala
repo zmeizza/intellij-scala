@@ -19,7 +19,7 @@ import org.jetbrains.plugins.scala.lang.psi.types.api.{Any, FunctionType, TupleT
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{Parameter, ScMethodType, ScTypePolymorphicType}
 import org.jetbrains.plugins.scala.lang.psi.types.recursiveUpdate.ScSubstitutor
 import org.jetbrains.plugins.scala.lang.psi.types.result.{Failure, TypeResult}
-import org.jetbrains.plugins.scala.lang.psi.types.{ApplicabilityProblem, Compatibility, ScType, ScalaType}
+import org.jetbrains.plugins.scala.lang.psi.types.{ApplicabilityProblem, Compatibility, ScAbstractType, ScType, ScalaType}
 import org.jetbrains.plugins.scala.lang.resolve.MethodTypeProvider._
 import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
 import org.jetbrains.plugins.scala.lang.resolve.processor.DynamicResolveProcessor._
@@ -106,11 +106,11 @@ abstract class MethodInvocationImpl(node: ASTNode) extends ScExpressionImplBase(
   private def checkConformanceWithInference(retType: ScType,
                                             withExpectedType: Boolean,
                                             psiExprs: Seq[Expression],
-                                            typeParams: Seq[TypeParameter],
+                                            typeArgs: Seq[ScAbstractType],
                                             parameters: Seq[Parameter]): InvocationData.Full = {
     tuplizyCase(psiExprs) { t =>
       val (inferredType, problems, matchedParams, matchedTypes) =
-        InferUtil.localTypeInferenceWithApplicabilityExt(retType, parameters, t, typeParams, canThrowSCE = withExpectedType)
+        InferUtil.localTypeInferenceWithApplicabilityExt(retType, parameters, t, typeArgs, canThrowSCE = withExpectedType)
       InvocationData.Full(inferredType, problems, matchedParams, matchedTypes)
     }
   }
@@ -132,10 +132,10 @@ abstract class MethodInvocationImpl(node: ASTNode) extends ScExpressionImplBase(
     invokedNonValueType match {
       case ScMethodType(retType, params, _) =>
         Some(checkConformance(retType, args, params))
-      case ScTypePolymorphicType(ScMethodType(retType, params, _), typeParams) =>
-        Some(checkConformanceWithInference(retType, withExpectedType, args, typeParams, params))
-      case ScTypePolymorphicType(FunctionType(retType, params), typeParams) =>
-        Some(checkConformanceWithInference(retType, withExpectedType, args, typeParams, functionParams(params)))
+      case ScTypePolymorphicType(ScMethodType(retType, params, _), typeArgs) =>
+        Some(checkConformanceWithInference(retType, withExpectedType, args, typeArgs, params))
+      case ScTypePolymorphicType(FunctionType(retType, params), typeArgs) =>
+        Some(checkConformanceWithInference(retType, withExpectedType, args, typeArgs, functionParams(params)))
       case any if ScalaPsiUtil.isSAMEnabled(this) =>
         ScalaPsiUtil.toSAMType(any, this) match {
           case Some(FunctionType(retType: ScType, params: Seq[ScType])) =>

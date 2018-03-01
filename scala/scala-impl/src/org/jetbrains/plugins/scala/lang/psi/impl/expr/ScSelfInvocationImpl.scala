@@ -5,7 +5,6 @@ package impl
 package expr
 
 import scala.collection.Seq
-
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi._
@@ -16,7 +15,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.statements.ScFunction
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScTypeParametersOwner
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScClass, ScTemplateDefinition}
 import org.jetbrains.plugins.scala.lang.psi.types.Compatibility.Expression
-import org.jetbrains.plugins.scala.lang.psi.types.ScType
+import org.jetbrains.plugins.scala.lang.psi.types.{ScAbstractType, ScType}
 import org.jetbrains.plugins.scala.lang.psi.types.api.TypeParameter
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.ScTypePolymorphicType
 import org.jetbrains.plugins.scala.lang.psi.types.result._
@@ -71,8 +70,8 @@ class ScSelfInvocationImpl(node: ASTNode) extends ScExpressionImplBase(node) wit
     }
     clazz match {
       case tp: ScTypeParametersOwner if tp.typeParameters.nonEmpty =>
-        val params: Seq[TypeParameter] = tp.typeParameters.map(TypeParameter(_))
-        Right(ScTypePolymorphicType(res, params))
+        val abstractArgs: Seq[ScAbstractType] = tp.typeParameters.map(ScAbstractType(_))
+        Right(ScTypePolymorphicType(res, abstractArgs))
       case _ => Right(res)
     }
   }

@@ -388,14 +388,14 @@ class ExpectedTypesImpl extends ExpectedTypes {
     }
 
     //returns properly substituted method type of `apply` method invocation and whether it's apply dynamic named
-    def tryApplyMethod(internalType: ScType, typeParams: Seq[TypeParameter]): Option[(TypeResult, Boolean)] = {
+    def tryApplyMethod(internalType: ScType, typeArgs: Seq[ScAbstractType]): Option[(TypeResult, Boolean)] = {
       call.getOrElse(expr).shapeResolveApplyMethod(internalType, argExprs, call) match {
         case Array(r@ScalaResolveResult(fun: ScFunction, s)) =>
 
           val polyType = fun.polymorphicType(s) match {
             case ScTypePolymorphicType(internal, params) =>
-              ScTypePolymorphicType(internal, params ++ typeParams)
-            case anotherType if typeParams.nonEmpty => ScTypePolymorphicType(anotherType, typeParams)
+              ScTypePolymorphicType(internal, params ++ typeArgs)
+            case anotherType if typeArgs.nonEmpty => ScTypePolymorphicType(anotherType, typeArgs)
             case anotherType => anotherType
           }
 
@@ -415,11 +415,11 @@ class ExpectedTypesImpl extends ExpectedTypes {
       case Right(t@ScTypePolymorphicType(ScMethodType(_, params, _), _)) =>
         fromMethodTypeParams(params, t.abstractTypeSubstitutor)
       case Right(anotherType) if !forApply =>
-        val (internalType, typeParams) = anotherType match {
-          case ScTypePolymorphicType(internal, tps) => (internal, tps)
+        val (internalType, typeArgs) = anotherType match {
+          case ScTypePolymorphicType(internal, args) => (internal, args)
           case t => (t, Seq.empty)
         }
-        tryApplyMethod(internalType, typeParams) match {
+        tryApplyMethod(internalType, typeArgs) match {
           case Some((applyInvokedType, isApplyDynamicNamed)) =>
             computeExpectedParamType(expr, applyInvokedType, argExprs, idx, forApply = true, isDynamicNamed = isApplyDynamicNamed)
           case _ => None

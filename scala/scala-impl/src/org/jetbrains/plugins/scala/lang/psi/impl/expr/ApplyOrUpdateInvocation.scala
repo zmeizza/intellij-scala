@@ -1,7 +1,6 @@
 package org.jetbrains.plugins.scala.lang.psi.impl.expr
 
 import scala.collection.{Seq, Set}
-
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.ResolveState
 import org.jetbrains.plugins.scala.extensions.PsiElementExt
@@ -11,7 +10,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.expr.{MethodInvocation, ScAssign
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiElementFactory.createExpressionFromText
 import org.jetbrains.plugins.scala.lang.psi.implicits.ImplicitResolveResult
 import org.jetbrains.plugins.scala.lang.psi.types.Compatibility.Expression
-import org.jetbrains.plugins.scala.lang.psi.types.ScType
+import org.jetbrains.plugins.scala.lang.psi.types.{ScAbstractType, ScType}
 import org.jetbrains.plugins.scala.lang.psi.types.api.{TypeParameter, UndefinedType}
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{ScMethodType, ScTypePolymorphicType}
 import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
@@ -29,13 +28,13 @@ case class ApplyOrUpdateInvocation(call: MethodInvocation,
                                    baseExpr: ScExpression,
                                    baseExprType: ScType,
                                    typeArgs: Seq[ScTypeElement],
-                                   typeParams: Seq[TypeParameter],
+                                   abstractTypeArgs: Seq[ScAbstractType],
                                    isDynamic: Boolean) {
 
   def collectCandidates(isShape: Boolean): Array[ScalaResolveResult] = {
     val nameArgForDynamic = if (isDynamic) Some("apply") else None
 
-    val processor = new MethodResolveProcessor(baseExpr, methodName, argClauses, typeArgs, typeParams,
+    val processor = new MethodResolveProcessor(baseExpr, methodName, argClauses, typeArgs, abstractTypeArgs,
       isShapeResolve = isShape, enableTupling = true, nameArgForDynamic = nameArgForDynamic)
 
     val simpleCandidates: Set[ScalaResolveResult] = candidatesNoImplicit(processor)
@@ -108,7 +107,7 @@ object ApplyOrUpdateInvocation {
   def apply(call: MethodInvocation, tp: ScType, isDynamic: Boolean): ApplyOrUpdateInvocation = {
     val argClauses = argumentClauses(call, isDynamic)
 
-    val typeParams = call.getInvokedExpr.getNonValueType().toOption.collect {
+    val abstractTypeArgs = call.getInvokedExpr.getNonValueType().toOption.collect {
       case ScTypePolymorphicType(_, tps) => tps
     }.getOrElse(Seq.empty)
 
@@ -125,7 +124,7 @@ object ApplyOrUpdateInvocation {
       case expression => (expression, tp, Seq.empty)
     }
 
-    ApplyOrUpdateInvocation(call, argClauses, baseExpr, baseExprType, typeArgs, typeParams, isDynamic)
+    ApplyOrUpdateInvocation(call, argClauses, baseExpr, baseExprType, typeArgs, abstractTypeArgs, isDynamic)
   }
 
   private def argumentClauses(call: MethodInvocation, isDynamic: Boolean): List[Seq[Expression]] = {

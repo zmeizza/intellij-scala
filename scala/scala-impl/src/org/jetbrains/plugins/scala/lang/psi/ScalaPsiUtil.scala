@@ -348,12 +348,12 @@ object ScalaPsiUtil {
     import tp.projectContext
 
     tp match {
-      case tp@ScTypePolymorphicType(internal, typeParameters) =>
+      case tp@ScTypePolymorphicType(internal, typeArgs) =>
         def hasBadLinks(tp: ScType, ownerPtp: PsiTypeParameter): Option[ScType] = {
           var res: Option[ScType] = Some(tp)
           tp.visitRecursively {
             case t: TypeParameterType =>
-              if (typeParameters.exists {
+              if (typeArgs.map(_.typeParameter).exists {
                 case TypeParameter(ptp, _, _, _) if ptp == t.psiTypeParameter && ptp.getOwner != ownerPtp.getOwner => true
                 case _ => false
               }) res = None
@@ -362,16 +362,14 @@ object ScalaPsiUtil {
           res
         }
 
-        def clearBadLinks(tps: Seq[TypeParameter]): Seq[TypeParameter] = tps.map {
-          case TypeParameter(psiTypeParameter, parameters, lowerType, upperType) =>
-            TypeParameter(
-              psiTypeParameter,
-              clearBadLinks(parameters),
-              hasBadLinks(lowerType, psiTypeParameter).getOrElse(Nothing),
-              hasBadLinks(upperType, psiTypeParameter).getOrElse(Any))
+        def clearBadLinks(tps: Seq[ScAbstractType]): Seq[ScAbstractType] = tps.map {
+          case ScAbstractType(t, lowerType, upperType) =>
+            val lower = hasBadLinks(lowerType, t.psiTypeParameter).getOrElse(Nothing)
+            val upper = hasBadLinks(upperType, t.psiTypeParameter).getOrElse(Any)
+            ScAbstractType(t, lower, upper)
         }
 
-        ScTypePolymorphicType(internal, clearBadLinks(typeParameters))
+        ScTypePolymorphicType(internal, clearBadLinks(typeArgs))
       case _ => tp
     }
   }

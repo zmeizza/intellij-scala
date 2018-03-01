@@ -35,7 +35,7 @@ object BaseProcessor {
 
   val FROM_TYPE_KEY: Key[ScType] = Key.create("from.type.key")
 
-  val UNRESOLVED_TYPE_PARAMETERS_KEY: Key[Seq[TypeParameter]] = Key.create("unresolved.type.parameters.key")
+  val UNRESOLVED_TYPE_PARAMETERS_KEY: Key[Seq[ScAbstractType]] = Key.create("unresolved.type.parameters.key")
 
   val COMPOUND_TYPE_THIS_TYPE_KEY: Key[Option[ScType]] = Key.create("compound.type.this.type.key")
 

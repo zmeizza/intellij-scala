@@ -965,7 +965,7 @@ trait ScalaConformance extends api.Conformance {
                   undefinedSubst, visited, checkWeak)
                 result = if (t._1) {
                   val abstractedTypeParams = abstracted.zipWithIndex.map {
-                    case (_, i) => TypeParameter.light("p" + i + "$$", Seq(), Nothing, Any)
+                    case (_, i) => ScAbstractType(TypeParameter.light("p" + i + "$$", Seq(), Nothing, Any))
                   }
                   addParam(typeParameter, ScTypePolymorphicType(ScParameterizedType(des2,
                     captured ++ abstractedTypeParams.map(TypeParameterType(_))), abstractedTypeParams), t._2)
@@ -1434,23 +1434,23 @@ trait ScalaConformance extends api.Conformance {
 
       r match {
         case t2: ScTypePolymorphicType =>
-          val typeParameters1 = t1.typeParameters
-          val typeParameters2 = t2.typeParameters
+          val typeArgs1 = t1.typeArguments
+          val typeArgs2 = t2.typeArguments
           val internalType1 = t1.internalType
           val internalType2 = t2.internalType
-          if (typeParameters1.length != typeParameters2.length) {
+          if (typeArgs1.length != typeArgs2.length) {
             result = (false, undefinedSubst)
             return
           }
           var i = 0
-          while (i < typeParameters1.length) {
-            var t = conformsInner(typeParameters1(i).lowerType, typeParameters2(i).lowerType, HashSet.empty, undefinedSubst)
+          while (i < typeArgs1.length) {
+            var t = conformsInner(typeArgs1(i).lowerType, typeArgs2(i).lowerType, HashSet.empty, undefinedSubst)
             if (!t._1) {
               result = (false, undefinedSubst)
               return
             }
             undefinedSubst = t._2
-            t = conformsInner(typeParameters2(i).upperType, typeParameters1(i).lowerType, HashSet.empty, undefinedSubst)
+            t = conformsInner(typeArgs2(i).upperType, typeArgs1(i).lowerType, HashSet.empty, undefinedSubst)
             if (!t._1) {
               result = (false, undefinedSubst)
               return
@@ -1458,7 +1458,7 @@ trait ScalaConformance extends api.Conformance {
             undefinedSubst = t._2
             i = i + 1
           }
-          val subst = ScSubstitutor.bind(typeParameters1, typeParameters2)(TypeParameterType(_))
+          val subst = ScSubstitutor.bind(typeArgs1, typeArgs2.map(_.inferValueType))
           val t = conformsInner(subst.subst(internalType1), internalType2, HashSet.empty, undefinedSubst)
           if (!t._1) {
             result = (false, undefinedSubst)

@@ -205,7 +205,7 @@ class ScReferenceExpressionImpl(node: ASTNode) extends ScReferenceElementImpl(no
 
   protected def convertBindToType(bind: ScalaResolveResult): TypeResult = {
     val fromType: Option[ScType] = bind.fromType
-    val unresolvedTypeParameters: Seq[TypeParameter] = bind.unresolvedTypeParameters.getOrElse(Seq.empty)
+    val unresolvedTypeParameters: Seq[ScAbstractType] = bind.unresolvedTypeParameters.getOrElse(Seq.empty)
 
     def stableTypeRequired: Boolean = {
       //SLS 6.4
@@ -495,12 +495,12 @@ class ScReferenceExpressionImpl(node: ASTNode) extends ScReferenceElementImpl(no
         getContext match {
           case sugar: ScSugarCallExpr if sugar.operation == this =>
             sugar.getBaseExpr.getNonValueType() match {
-              case Right(ScTypePolymorphicType(_, typeParams)) =>
+              case Right(ScTypePolymorphicType(_, typeArgs)) =>
                 inner match {
-                  case ScTypePolymorphicType(internal, typeParams2) =>
-                    return Right(ScalaPsiUtil.removeBadBounds(ScTypePolymorphicType(internal, typeParams ++ typeParams2 ++ unresolvedTypeParameters)))
+                  case ScTypePolymorphicType(internal, typeArgs2) =>
+                    return Right(ScalaPsiUtil.removeBadBounds(ScTypePolymorphicType(internal, typeArgs ++ typeArgs2 ++ unresolvedTypeParameters)))
                   case _ =>
-                    return Right(ScTypePolymorphicType(inner, typeParams ++ unresolvedTypeParameters))
+                    return Right(ScTypePolymorphicType(inner, typeArgs ++ unresolvedTypeParameters))
                 }
               case _ if unresolvedTypeParameters.nonEmpty =>
                 inner match {
@@ -535,7 +535,7 @@ class ScReferenceExpressionImpl(node: ASTNode) extends ScReferenceElementImpl(no
     Right(inner)
   }
 
-  def getPrevTypeInfoParams: Seq[TypeParameter] = {
+  def getPrevTypeInfoParams: Seq[ScAbstractType] = {
     val maybeExpression = qualifier match {
       case Some(_: ScSuperReference) => None
       case None => getContext match {
@@ -546,7 +546,7 @@ class ScReferenceExpressionImpl(node: ASTNode) extends ScReferenceElementImpl(no
     }
 
     maybeExpression.flatMap(_.getNonValueType().toOption).collect {
-      case ScTypePolymorphicType(_, parameters) => parameters
+      case ScTypePolymorphicType(_, typeArgs) => typeArgs
     }.getOrElse(Seq.empty)
   }
 

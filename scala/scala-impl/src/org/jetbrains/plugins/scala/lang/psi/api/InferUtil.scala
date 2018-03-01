@@ -76,7 +76,7 @@ object InferUtil {
         updatedType match {
           case tpt: ScTypePolymorphicType =>
             resInner = t.copy(internalType = mt.copy(returnType = tpt.internalType),
-              typeParameters = tpt.typeParameters)
+              typeArguments = tpt.typeArguments)
           case _ => //shouldn't be there
             resInner = t.copy(internalType = mt.copy(returnType = updatedType))
         }
@@ -346,11 +346,11 @@ object InferUtil {
     }
 
   def localTypeInference(retType: ScType, params: Seq[Parameter], exprs: Seq[Expression],
-                         typeParams: Seq[TypeParameter],
+                         typeArgs: Seq[ScAbstractType],
                          shouldUndefineParameters: Boolean = true,
                          canThrowSCE: Boolean = false,
                          filterTypeParams: Boolean = true): ScTypePolymorphicType = {
-    localTypeInferenceWithApplicability(retType, params, exprs, typeParams, shouldUndefineParameters, canThrowSCE,
+    localTypeInferenceWithApplicability(retType, params, exprs, typeArgs, shouldUndefineParameters, canThrowSCE,
       filterTypeParams)._1
   }
 
@@ -358,30 +358,30 @@ object InferUtil {
   class SafeCheckException extends ControlThrowable
 
   def localTypeInferenceWithApplicability(retType: ScType, params: Seq[Parameter], exprs: Seq[Expression],
-                                          typeParams: Seq[TypeParameter],
+                                          typeArgs: Seq[ScAbstractType],
                                           shouldUndefineParameters: Boolean = true,
                                           canThrowSCE: Boolean = false,
                                           filterTypeParams: Boolean = true): (ScTypePolymorphicType, Seq[ApplicabilityProblem]) = {
-    val (tp, problems, _, _) = localTypeInferenceWithApplicabilityExt(retType, params, exprs, typeParams,
+    val (tp, problems, _, _) = localTypeInferenceWithApplicabilityExt(retType, params, exprs, typeArgs,
       shouldUndefineParameters, canThrowSCE, filterTypeParams)
     (tp, problems)
   }
 
   def localTypeInferenceWithApplicabilityExt(retType: ScType, params: Seq[Parameter], exprs: Seq[Expression],
-                                             typeParams: Seq[TypeParameter],
+                                             typeArgs: Seq[ScAbstractType],
                                              shouldUndefineParameters: Boolean = true,
                                              canThrowSCE: Boolean = false,
                                              filterTypeParams: Boolean = true
                                             ): (ScTypePolymorphicType, Seq[ApplicabilityProblem], Seq[(Parameter, ScExpression)], Seq[(Parameter, ScType)]) = {
     implicit val projectContext = retType.projectContext
 
-    val typeParamIds = typeParams.map(_.typeParamId).toSet
+    val typeParamIds = typeArgs.map(_.typeParamId).toSet
     def hasRecursiveTypeParams(typez: ScType): Boolean = typez.hasRecursiveTypeParameters(typeParamIds)
 
     // See SCL-3052, SCL-3058
     // This corresponds to use of `isCompatible` in `Infer#methTypeArgs` in scalac, where `isCompatible` uses `weak_<:<`
-    val s: ScSubstitutor = if (shouldUndefineParameters) ScSubstitutor.bind(typeParams)(UndefinedType(_)) else ScSubstitutor.empty
-    val abstractSubst = ScTypePolymorphicType(retType, typeParams).abstractTypeSubstitutor
+    val s: ScSubstitutor = if (shouldUndefineParameters) ScSubstitutor.bind(typeArgs)(UndefinedType(_)) else ScSubstitutor.empty
+    val abstractSubst = ScTypePolymorphicType(retType, typeArgs).abstractTypeSubstitutor
     val paramsWithUndefTypes = params.map(p => p.copy(paramType = s.subst(p.paramType),
       expectedType = abstractSubst.subst(p.paramType), defaultType = p.defaultType.map(s.subst)))
     val c = Compatibility.checkConformanceExt(checkNames = true, paramsWithUndefTypes, exprs, checkWithImplicits = true,
@@ -392,14 +392,14 @@ object InferUtil {
       subst.getSubstitutorWithBounds(canThrowSCE) match {
         case Some((unSubst, lMap, uMap)) =>
           if (!filterTypeParams) {
-            val undefiningSubstitutor = ScSubstitutor.bind(typeParams)(UndefinedType(_))
-            ScTypePolymorphicType(retType, typeParams.map {
-              case tp@TypeParameter(psiTypeParameter, typeParameters, lowerType, upperType) =>
+            val undefiningSubstitutor = ScSubstitutor.bind(typeArgs)(UndefinedType(_))
+            ScTypePolymorphicType(retType, typeArgs.map {
+              case ScAbstractType(tp, lowerType, upperType) =>
                 val typeParamId = tp.typeParamId
                 val lower = lMap.get(typeParamId) match {
                   case Some(_addLower) =>
                     val substedLower = unSubst.subst(lowerType)
-                    val withParams = tryAddParameters(_addLower, typeParameters)
+                    val withParams = tryAddParameters(_addLower, tp.typeParameters)
 
                     if (substedLower == _addLower || hasRecursiveTypeParams(substedLower)) withParams
                     else substedLower.lub(withParams)
@@ -409,7 +409,7 @@ object InferUtil {
                 val upper = uMap.get(typeParamId) match {
                   case Some(_addUpper) =>
                     val substedUpper = unSubst.subst(upperType)
-                    val withParams = tryAddParameters(_addUpper, typeParameters)
+                    val withParams = tryAddParameters(_addUpper, tp.typeParameters)
 
                     if (substedUpper == _addUpper || hasRecursiveTypeParams(substedUpper)) withParams
                     else substedUpper.glb(withParams)
@@ -419,13 +419,10 @@ object InferUtil {
 
                 if (canThrowSCE && !undefiningSubstitutor.subst(lower).weakConforms(undefiningSubstitutor.subst(upper)))
                   throw new SafeCheckException
-                TypeParameter(psiTypeParameter,
-                  typeParameters, /* doesn't important here */
-                  lower,
-                  upper)
+                ScAbstractType(tp, lower, upper)
             })
           } else {
-            typeParams.foreach { tp =>
+            typeArgs.foreach { tp =>
               val typeParamId = tp.typeParamId
               if (un.typeParamIds.contains(typeParamId) || tp.lowerType != Nothing) {
                 //todo: add only one of them according to variance
@@ -445,9 +442,9 @@ object InferUtil {
             }
 
             def updateWithSubst(sub: ScSubstitutor): ScTypePolymorphicType = {
-              ScTypePolymorphicType(sub.subst(retType), typeParams.filter {
-                case tp =>
-                  val removeMe: Boolean = un.typeParamIds.contains(tp.typeParamId)
+              ScTypePolymorphicType.create(sub.subst(retType), typeArgs.filter {
+                case absT =>
+                  val removeMe: Boolean = un.typeParamIds.contains(absT.typeParamId)
                   if (removeMe && canThrowSCE) {
                     //let's check type parameter kinds
                     def checkTypeParam(typeParam: ScTypeParam, tp: => ScType): Boolean = {
@@ -478,16 +475,16 @@ object InferUtil {
                           tp.extractDesignated(expandAliases = false).exists(checkNamed(_, typeParams))
                       }
                     }
-                    tp.psiTypeParameter match {
+                    absT.typeParameter.psiTypeParameter match {
                       case typeParam: ScTypeParam =>
-                        if (!checkTypeParam(typeParam, sub.subst(TypeParameterType(tp.psiTypeParameter))))
+                        if (!checkTypeParam(typeParam, sub.subst(TypeParameterType(absT.typeParameter.psiTypeParameter))))
                           throw new SafeCheckException
                       case _ =>
                     }
                   }
                   !removeMe
               }.map {
-                _.update(sub.subst)
+                sub.subst
               })
             }
 
@@ -499,7 +496,7 @@ object InferUtil {
           }
         case None => throw new SafeCheckException
       }
-    } else ScTypePolymorphicType(retType, typeParams)
+    } else ScTypePolymorphicType(retType, typeArgs)
     (tpe, c.problems, c.matchedArgs, c.matchedTypes)
   }
 

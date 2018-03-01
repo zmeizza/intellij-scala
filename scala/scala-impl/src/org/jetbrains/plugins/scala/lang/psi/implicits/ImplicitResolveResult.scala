@@ -5,7 +5,7 @@ import com.intellij.psi.{PsiClass, PsiNamedElement, ResolveState}
 import org.jetbrains.plugins.scala.caches.CachesUtil._
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.usages.ImportUsed
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.templates.ScTemplateBody
-import org.jetbrains.plugins.scala.lang.psi.types.ScType
+import org.jetbrains.plugins.scala.lang.psi.types.{ScAbstractType, ScType}
 import org.jetbrains.plugins.scala.lang.psi.types.api.TypeParameter
 import org.jetbrains.plugins.scala.lang.psi.types.recursiveUpdate.ScSubstitutor
 import org.jetbrains.plugins.scala.lang.resolve.ScalaResolveResult
@@ -26,7 +26,7 @@ sealed trait ImplicitResolveResult {
 
   protected val resolveResult: ScalaResolveResult
 
-  protected val unresolvedTypeParameters: Seq[TypeParameter]
+  protected val unresolvedTypeParameters: Seq[ScAbstractType]
 
   protected val implicitDependentSubstitutor: ScSubstitutor
 }
@@ -34,13 +34,13 @@ sealed trait ImplicitResolveResult {
 case class CompanionImplicitResolveResult(resolveResult: ScalaResolveResult,
                                           `type`: ScType,
                                           implicitDependentSubstitutor: ScSubstitutor) extends ImplicitResolveResult {
-  override val unresolvedTypeParameters: Seq[TypeParameter] = Seq.empty
+  override val unresolvedTypeParameters: Seq[ScAbstractType] = Seq.empty
 }
 
 case class RegularImplicitResolveResult(resolveResult: ScalaResolveResult,
                                         `type`: ScType,
                                         implicitDependentSubstitutor: ScSubstitutor = ScSubstitutor.empty,
-                                        unresolvedTypeParameters: Seq[TypeParameter] = Seq.empty) extends ImplicitResolveResult
+                                        unresolvedTypeParameters: Seq[ScAbstractType] = Seq.empty) extends ImplicitResolveResult
 
 object ImplicitResolveResult {
 

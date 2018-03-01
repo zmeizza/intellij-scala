@@ -134,8 +134,8 @@ case class ScExistentialType(quantified: ScType,
           undefinedSubst = t._2
         }
         quantified.equiv(ex.quantified, undefinedSubst, falseUndef) //todo: probable problems with different positions of skolemized types.
-      case poly: ScTypePolymorphicType if poly.typeParameters.length == wildcards.length =>
-        val list = wildcards.zip(poly.typeParameters)
+      case poly: ScTypePolymorphicType if poly.typeArguments.length == wildcards.length =>
+        val list = wildcards.zip(poly.typeArguments)
         val iterator = list.iterator
         var t = (true, undefinedSubst)
         while (iterator.hasNext) {
@@ -145,7 +145,7 @@ case class ScExistentialType(quantified: ScType,
           t = w.upper.equivInner(tp.upperType, t._2, falseUndef)
           if (!t._1) return (false, undefinedSubst)
         }
-        val polySubst = ScSubstitutor.bind(poly.typeParameters, wildcards)
+        val polySubst = ScSubstitutor.bind(poly.typeArguments, wildcards)
         quantified.equiv(polySubst.subst(poly.internalType), t._2, falseUndef)
       case _ => (false, undefinedSubst)
     }
@@ -310,10 +310,10 @@ case class ScExistentialType(quantified: ScType,
         ScAbstractType(tp,
           updateRecursive(lower, rejected, -variance),
           updateRecursive(upper, rejected, variance))
-      case ScTypePolymorphicType(internalType, typeParameters) =>
-        ScTypePolymorphicType(
+      case ScTypePolymorphicType(internalType, typeArgs) =>
+        ScTypePolymorphicType.create(
           updateRecursive(internalType, rejected, variance),
-          typeParameters.update(updateRecursive(_, rejected, variance))
+          typeArgs.map(updateRecursive(_, rejected, variance))
         )
       case _ => tp
     }

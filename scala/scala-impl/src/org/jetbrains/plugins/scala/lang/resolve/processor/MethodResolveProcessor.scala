@@ -33,7 +33,7 @@ class MethodResolveProcessor(override val ref: PsiElement,
                              val refName: String,
                              var argumentClauses: List[Seq[Expression]],
                              val typeArgElements: Seq[ScTypeElement],
-                             val prevTypeInfo: Seq[TypeParameter],
+                             val prevTypeInfo: Seq[ScAbstractType],
                              override val kinds: Set[ResolveTargets.Value] = StdKinds.methodRef,
                              val expectedOption: () => Option[ScType] = () => None,
                              val isUnderscore: Boolean = false,
@@ -69,7 +69,7 @@ class MethodResolveProcessor(override val ref: PsiElement,
 
     def isNamedParameter: Boolean = state.get(NAMED_PARAM_KEY).toOption.exists(_.booleanValue)
     def fromType: Option[ScType] = state.get(BaseProcessor.FROM_TYPE_KEY).toOption
-    def unresolvedTypeParameters: Option[Seq[TypeParameter]] = state.get(BaseProcessor.UNRESOLVED_TYPE_PARAMETERS_KEY).toOption
+    def unresolvedTypeParameters: Option[Seq[ScAbstractType]] = state.get(BaseProcessor.UNRESOLVED_TYPE_PARAMETERS_KEY).toOption
     def nameShadow: Option[String] = Option(state.get(ResolverEnv.nameKey))
     def forwardReference: Boolean = isForwardReference(state)
 
@@ -181,7 +181,7 @@ object MethodResolveProcessor {
                           argumentClauses: List[Seq[Expression]],
                           typeArgElements: Seq[ScTypeElement],
                           selfConstructorResolve: Boolean,
-                          prevTypeInfo: Seq[TypeParameter],
+                          prevTypeInfo: Seq[ScAbstractType],
                           expectedOption: () => Option[ScType],
                           isUnderscore: Boolean,
                           isShapeResolve: Boolean): ConformanceExtResult = {
@@ -214,9 +214,9 @@ object MethodResolveProcessor {
 
     val substitutor = tempSubstitutor.followed(ScSubstitutor.bind(prevTypeInfo)(UndefinedType(_)))
 
-    val typeParameters: Seq[TypeParameter] = prevTypeInfo ++ (element match {
-      case fun: ScFunction => fun.typeParameters.map(TypeParameter(_))
-      case fun: PsiMethod => fun.getTypeParameters.map(TypeParameter(_)).toSeq
+    val typeArgs: Seq[ScAbstractType] = prevTypeInfo ++ (element match {
+      case fun: ScFunction => fun.typeParameters.map(ScAbstractType(_))
+      case fun: PsiMethod => fun.getTypeParameters.map(ScAbstractType(_))
       case _ => Seq.empty
     })
 
@@ -429,10 +429,10 @@ object MethodResolveProcessor {
         case None =>
           result.copy(problems = Seq(WrongTypeParameterInferred))
         case Some(unSubst) =>
-          val typeParamIds = typeParameters.map(_.typeParamId).toSet
+          val typeParamIds = typeArgs.map(_.typeParamId).toSet
           def hasRecursiveTypeParameters(typez: ScType): Boolean = typez.hasRecursiveTypeParameters(typeParamIds)
 
-          for (TypeParameter(tParam, _, lowerType, upperType) <- typeParameters) {
+          for (ScAbstractType(tParam, lowerType, upperType) <- typeArgs) {
             if (lowerType != Nothing) {
               val substedLower = s.subst(unSubst.subst(lowerType))
               if (!hasRecursiveTypeParameters(substedLower)) {
