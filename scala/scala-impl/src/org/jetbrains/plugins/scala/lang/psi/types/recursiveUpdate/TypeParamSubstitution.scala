@@ -36,12 +36,12 @@ private case class TypeParamSubstitution(tvMap: LongMap[ScType]) extends Substit
   }
 
   private def updatedUndefined(u: UndefinedType): ScType = {
-    val parameterType = u.parameterType
-    tvMap.get(parameterType.typeParamId) match {
+    val typeParameter = u.typeParameter
+    tvMap.get(typeParameter.typeParamId) match {
       case None => u
       case Some(v) => v match {
-        case tpt: TypeParameterType if tpt.psiTypeParameter == parameterType.psiTypeParameter => u
-        case _ => extractDesignator(parameterType.typeParameter, v)
+        case tpt: TypeParameterType if tpt.psiTypeParameter == typeParameter.psiTypeParameter => u
+        case _ => extractDesignator(typeParameter, v)
       }
     }
   }

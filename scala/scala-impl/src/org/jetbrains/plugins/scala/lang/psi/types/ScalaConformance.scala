@@ -117,12 +117,12 @@ trait ScalaConformance extends api.Conformance {
         //this case filter out such cases like undefined type
         case _ =>
           argsPair match {
-            case (UndefinedType(parameterType, _), rt) =>
-              val y = addParam(parameterType, rt, undefinedSubst)
+            case (UndefinedType(typeParameter, _), rt) =>
+              val y = addParam(typeParameter, rt, undefinedSubst)
               if (!y._1) return (false, undefinedSubst)
               undefinedSubst = y._2
-            case (lt, UndefinedType(parameterType, _)) =>
-              val y = addParam(parameterType, lt, undefinedSubst)
+            case (lt, UndefinedType(typeParameter, _)) =>
+              val y = addParam(typeParameter, lt, undefinedSubst)
               if (!y._1) return (false, undefinedSubst)
               undefinedSubst = y._2
             case (ScAbstractType(_, lower, upper), right) =>
@@ -147,8 +147,8 @@ trait ScalaConformance extends api.Conformance {
 
     private implicit val projectContext = l.projectContext
 
-    private def addBounds(parameterType: TypeParameterType, `type`: ScType) = {
-      val name = parameterType.typeParamId
+    private def addBounds(typeParameter: TypeParameter, `type`: ScType) = {
+      val name = typeParameter.typeParamId
       undefinedSubst = undefinedSubst
         .addLower(name, `type`, variance = Invariant)
         .addUpper(name, `type`, variance = Invariant)
@@ -170,7 +170,7 @@ trait ScalaConformance extends api.Conformance {
 
     trait UndefinedSubstVisitor extends ScalaTypeVisitor {
       override def visitUndefinedType(u: UndefinedType) {
-        result = (true, undefinedSubst.addUpper(u.parameterType.typeParamId, l))
+        result = (true, undefinedSubst.addUpper(u.typeParameter.typeParamId, l))
       }
     }
 
@@ -736,8 +736,8 @@ trait ScalaConformance extends api.Conformance {
                 }
                 undefinedSubst = t._2
               }
-            case (UndefinedType(parameterType, _), rt) => addBounds(parameterType, rt)
-            case (lt, UndefinedType(parameterType, _)) => addBounds(parameterType, lt)
+            case (UndefinedType(typeParameter, _), rt) => addBounds(typeParameter, rt)
+            case (lt, UndefinedType(typeParameter, _)) => addBounds(typeParameter, lt)
             case _ =>
               val t = argsPair._1.equiv(argsPair._2, undefinedSubst, falseUndef = false)
               if (!t._1) {
@@ -792,8 +792,8 @@ trait ScalaConformance extends api.Conformance {
                   }
                   undefinedSubst = t._2
                 }
-              case (UndefinedType(parameterType, _), rt) => addBounds(parameterType, rt)
-              case (lt, UndefinedType(parameterType, _)) => addBounds(parameterType, lt)
+              case (UndefinedType(typeParameter, _), rt) => addBounds(typeParameter, rt)
+              case (lt, UndefinedType(typeParameter, _)) => addBounds(typeParameter, lt)
               case _ =>
                 val t = argsPair._1.equiv(argsPair._2, undefinedSubst, falseUndef = false)
                 if (!t._1) {
@@ -938,20 +938,20 @@ trait ScalaConformance extends api.Conformance {
               } else {
                 result = (false, undefinedSubst)
               }
-            case (_: UndefinedType, UndefinedType(parameterType, _)) =>
+            case (_: UndefinedType, UndefinedType(typeParameter, _)) =>
               (if (args1.length != args2.length) findDiffLengthArgs(l, args2.length) else Some((args1, des1))) match {
                 case Some((aArgs, aType)) =>
-                  undefinedSubst = undefinedSubst.addUpper(parameterType.typeParamId, aType)
-                  result = checkParameterizedType(parameterType.typeParameters.map(_.psiTypeParameter).iterator, aArgs,
+                  undefinedSubst = undefinedSubst.addUpper(typeParameter.typeParamId, aType)
+                  result = checkParameterizedType(typeParameter.typeParameters.map(_.psiTypeParameter).iterator, aArgs,
                     args2, undefinedSubst, visited, checkWeak)
                 case _ =>
                   result = (false, undefinedSubst)
               }
-            case (UndefinedType(parameterType, _), _) =>
+            case (UndefinedType(typeParameter, _), _) =>
               (if (args1.length != args2.length) findDiffLengthArgs(r, args1.length) else Some((args2, des2))) match {
                 case Some((aArgs, aType)) =>
-                  undefinedSubst = undefinedSubst.addLower(parameterType.typeParamId, aType)
-                  result = checkParameterizedType(parameterType.typeParameters.map(_.psiTypeParameter).iterator, args1,
+                  undefinedSubst = undefinedSubst.addLower(typeParameter.typeParamId, aType)
+                  result = checkParameterizedType(typeParameter.typeParameters.map(_.psiTypeParameter).iterator, args1,
                     aArgs, undefinedSubst, visited, checkWeak)
                 case _ =>
                   result = (false, undefinedSubst)
@@ -961,23 +961,23 @@ trait ScalaConformance extends api.Conformance {
                 val captureLength = args2.length - args1.length
 
                 val (captured, abstracted) = args2.splitAt(captureLength)
-                val t = checkParameterizedType(parameterType.typeParameters.map(_.psiTypeParameter).iterator, args1, abstracted,
+                val t = checkParameterizedType(typeParameter.typeParameters.map(_.psiTypeParameter).iterator, args1, abstracted,
                   undefinedSubst, visited, checkWeak)
                 result = if (t._1) {
                   val abstractedTypeParams = abstracted.zipWithIndex.map {
                     case (_, i) => TypeParameter.light("p" + i + "$$", Seq(), Nothing, Any)
                   }
-                  addParam(parameterType, ScTypePolymorphicType(ScParameterizedType(des2,
+                  addParam(typeParameter, ScTypePolymorphicType(ScParameterizedType(des2,
                     captured ++ abstractedTypeParams.map(TypeParameterType(_))), abstractedTypeParams), t._2)
                 } else {
                   t
                 }
               }
-            case (_, UndefinedType(parameterType, _)) =>
+            case (_, UndefinedType(typeParameter, _)) =>
               (if (args1.length != args2.length) findDiffLengthArgs(l, args2.length) else Some((args1, des1))) match {
                 case Some((aArgs, aType)) =>
-                  undefinedSubst = undefinedSubst.addUpper(parameterType.typeParamId, aType)
-                  result = checkParameterizedType(parameterType.typeParameters.map(_.psiTypeParameter).iterator, aArgs,
+                  undefinedSubst = undefinedSubst.addUpper(typeParameter.typeParamId, aType)
+                  result = checkParameterizedType(typeParameter.typeParameters.map(_.psiTypeParameter).iterator, aArgs,
                     args2, undefinedSubst, visited, checkWeak)
                 case _ =>
                   result = (false, undefinedSubst)
@@ -1077,8 +1077,8 @@ trait ScalaConformance extends api.Conformance {
                   }
                   undefinedSubst = t._2
                 }
-              case (UndefinedType(parameterType, _), rt) => addBounds(parameterType, rt)
-              case (lt, UndefinedType(parameterType, _)) => addBounds(parameterType, lt)
+              case (UndefinedType(typeParameter, _), rt) => addBounds(typeParameter, rt)
+              case (lt, UndefinedType(typeParameter, _)) => addBounds(typeParameter, lt)
               case _ =>
                 val t = argsPair._1.equiv(argsPair._2, undefinedSubst, falseUndef = false)
                 if (!t._1) {
@@ -1339,7 +1339,7 @@ trait ScalaConformance extends api.Conformance {
     override def visitUndefinedType(u: UndefinedType) {
       val rightVisitor = new ValDesignatorSimplification {
         override def visitUndefinedType(u2: UndefinedType) {
-          val name = u2.parameterType.typeParamId
+          val name = u2.typeParameter.typeParamId
           result = (true, if (u2.level > u.level) {
             undefinedSubst.addUpper(name, u)
           } else if (u.level > u2.level) {
@@ -1351,7 +1351,7 @@ trait ScalaConformance extends api.Conformance {
       }
       r.visitType(rightVisitor)
       if (result == null)
-        result = (true, undefinedSubst.addLower(u.parameterType.typeParamId, r))
+        result = (true, undefinedSubst.addLower(u.typeParameter.typeParamId, r))
     }
 
     override def visitMethodType(m1: ScMethodType) {
@@ -1527,7 +1527,7 @@ trait ScalaConformance extends api.Conformance {
   def extractParams(des: ScType): Option[Iterator[PsiTypeParameter]] = {
     des match {
       case undef: UndefinedType =>
-        Option(undef.parameterType.psiTypeParameter).map(_.getTypeParameters.iterator)
+        Option(undef.typeParameter.psiTypeParameter).map(_.getTypeParameters.iterator)
       case _ =>
         des.extractClass.map {
           case td: ScTypeDefinition => td.typeParameters.iterator
@@ -1536,15 +1536,15 @@ trait ScalaConformance extends api.Conformance {
     }
   }
 
-  def addParam(parameterType: TypeParameterType, bound: ScType, undefinedSubst: ScUndefinedSubstitutor): (Boolean, ScUndefinedSubstitutor) =
-    addArgedBound(parameterType, bound, undefinedSubst, variance = Invariant, addUpper = true, addLower = true)
+  def addParam(typeParameter: TypeParameter, bound: ScType, undefinedSubst: ScUndefinedSubstitutor): (Boolean, ScUndefinedSubstitutor) =
+    addArgedBound(typeParameter, bound, undefinedSubst, variance = Invariant, addUpper = true, addLower = true)
 
-  def addArgedBound(parameterType: TypeParameterType, bound: ScType, undefinedSubst: ScUndefinedSubstitutor,
+  def addArgedBound(typeParameter: TypeParameter, bound: ScType, undefinedSubst: ScUndefinedSubstitutor,
                     variance: Variance = Covariant, addUpper: Boolean = false, addLower: Boolean = false): (Boolean, ScUndefinedSubstitutor) = {
     if (!addUpper && !addLower) return (false, undefinedSubst)
     var res = undefinedSubst
-    if (addUpper) res = res.addUpper(parameterType.typeParamId, bound, variance = variance)
-    if (addLower) res = res.addLower(parameterType.typeParamId, bound, variance = variance)
+    if (addUpper) res = res.addUpper(typeParameter.typeParamId, bound, variance = variance)
+    if (addLower) res = res.addLower(typeParameter.typeParamId, bound, variance = variance)
     (true, res)
   }
 
