@@ -211,6 +211,8 @@ abstract class BaseProcessor(val kinds: Set[ResolveTargets.Value])
         else proj.actualSubst
         val actualElement = proj.actualElement
         processElement(actualElement, s, place, state, visitedProjections = visitedProjections + actualElement, visitedTypeParameter = visitedTypeParameter)
+      case lit: ScLiteralType =>
+        processType(lit.wideType, place, state, updateWithProjectionSubst, visitedProjections, visitedTypeParameter)
       case StdType(name, tSuper) =>
         SyntheticClasses.get(place.getProject).byName(name) match {
           case Some(c) =>
