@@ -5,7 +5,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.expr.ScUnderscoreSection
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.ScParameter
 import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScAnnotationsHolder, ScFunction, ScValue, ScVariable}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScModifierListOwner
-import org.jetbrains.plugins.scala.lang.psi.types.ScType
+import org.jetbrains.plugins.scala.lang.psi.types.{ScCompoundType, ScType}
 import org.jetbrains.plugins.scala.lang.psi.types.result.Typeable
 
 import scala.util.matching.Regex
@@ -23,6 +23,8 @@ trait Declaration {
   def isConstant: Boolean
 
   def hasUnitType: Boolean
+  
+  def hasStructuralType: Boolean
 
   def typeMatches(patterns: Set[String]): Boolean
 
@@ -41,8 +43,9 @@ object Declaration {
   def apply(visibility: Visibility = Visibility.Default,
             isImplicit: Boolean = false,
             isConstant: Boolean = false,
-            hasUnitType: Boolean = false): Declaration =
-    SyntheticDeclaration(visibility, isImplicit, isConstant, hasUnitType)
+            hasUnitType: Boolean = false,
+            hasStructuralType: Boolean = false): Declaration =
+    SyntheticDeclaration(visibility, isImplicit, isConstant, hasUnitType, hasStructuralType)
 
   private class PhysycalDeclaration(element: PsiElement) extends Declaration {
     override def entity: Entity = element match {
@@ -90,6 +93,11 @@ object Declaration {
       case holder: ScAnnotationsHolder => annotations.exists(holder.hasAnnotation)
       case _ => false
     }
+
+    override def hasStructuralType: Boolean = element match {
+      case Typeable(ScCompoundType(_, sigs, tpes)) if sigs.nonEmpty || tpes.nonEmpty => true
+      case _                                                                         => false
+    }
   }
 
   private def matches(t: ScType, pattern: String): Boolean = {
@@ -106,7 +114,8 @@ object Declaration {
   private case class SyntheticDeclaration(visibility: Visibility,
                                           isImplicit: Boolean,
                                           isConstant: Boolean,
-                                          hasUnitType: Boolean) extends Declaration {
+                                          hasUnitType: Boolean,
+                                          hasStructuralType: Boolean) extends Declaration {
 
     override def entity: Entity = Entity.Method
 
