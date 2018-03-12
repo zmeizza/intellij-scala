@@ -21,7 +21,7 @@ import org.jetbrains.plugins.scala.lang.psi.impl.ScPackageImpl
 import org.jetbrains.plugins.scala.lang.psi.types.api.designator.ScProjectionType
 import org.jetbrains.plugins.scala.lang.refactoring.namesSuggester.NameSuggester
 import org.jetbrains.plugins.scala.lang.refactoring.util._
-import org.jetbrains.plugins.scala.worksheet.actions.RunWorksheetAction
+import org.jetbrains.plugins.scala.util.ScalaUtil
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -181,7 +181,7 @@ object ScopeSuggester {
 
     val currentPackage = ScPackageImpl.findPackage(typeElement.getProject, packageName).asInstanceOf[PsiPackage]
     val directoriesContainingFile = getDirectoriesContainigfile(typeElement.getContainingFile)
-    val module = RunWorksheetAction.getModuleFor(typeElement.getContainingFile)
+    val module = ScalaUtil.getModuleForFile(typeElement.getContainingFile).orNull
     val result: ArrayBuffer[(PsiPackage, PsiDirectory)] = new ArrayBuffer[(PsiPackage, PsiDirectory)]()
 
     getDirectoriesContainigFileAndPackage(currentPackage, module, result, directoriesContainingFile)
