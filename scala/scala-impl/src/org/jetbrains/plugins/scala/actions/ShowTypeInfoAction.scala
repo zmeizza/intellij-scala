@@ -13,7 +13,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.ScBindingPattern
 import org.jetbrains.plugins.scala.lang.psi.types.api.ScTypePresentation
 import org.jetbrains.plugins.scala.lang.psi.types.recursiveUpdate.ScSubstitutor
 import org.jetbrains.plugins.scala.lang.psi.types.result.Typeable
-import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScTypeExt}
+import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScTypeExt, TypePresentationTransformer}
 import org.jetbrains.plugins.scala.lang.refactoring.util.ScalaRefactoringUtil.getExpression
 import org.jetbrains.plugins.scala.statistics.{FeatureKey, Stats}
 
@@ -49,12 +49,12 @@ class ShowTypeInfoAction extends AnAction(ScalaBundle.message("type.info")) {
       def hintForExpression(): Option[String] = {
         getExpression(file).map {
           case expr@Typeable(tpe) =>
-            val tpeText = tpe.presentableText
+            val tpeText = tpe.originalPresentableText
             val withoutAliases = Some(ScTypePresentation.withoutAliases(tpe))
             val tpeWithoutImplicits = expr.getTypeWithoutImplicits().toOption
-            val tpeWithoutImplicitsText = tpeWithoutImplicits.map(_.presentableText)
-            val expectedTypeText = expr.expectedType().map(_.presentableText)
-            val nonSingletonTypeText = tpe.extractDesignatorSingleton.map(_.presentableText)
+            val tpeWithoutImplicitsText = tpeWithoutImplicits.map(_.originalPresentableText)
+            val expectedTypeText = expr.expectedType().map(_.originalPresentableText)
+            val nonSingletonTypeText = tpe.extractDesignatorSingleton.map(_.originalPresentableText)
 
             val mainText = Seq("Type: " + tpeText)
             def additionalTypeText(typeText: Option[String], label: String) = typeText.filter(_ != tpeText).map(s"$label: " + _)

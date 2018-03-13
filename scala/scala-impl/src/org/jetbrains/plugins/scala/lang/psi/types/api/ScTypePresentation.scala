@@ -8,7 +8,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.base.types.ScRefinement
 import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScTypeAliasDeclaration, ScTypeAliasDefinition}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScMember, ScObject}
 import org.jetbrains.plugins.scala.lang.psi.light.scala.ScLightTypeAliasDefinition
-import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScTypeExt}
+import org.jetbrains.plugins.scala.lang.psi.types.{ScType, ScTypeExt, TypePresentationTransformer}
 import org.jetbrains.plugins.scala.lang.refactoring.util.ScalaNamesUtil
 
 /**
@@ -85,7 +85,7 @@ object ScTypePresentation {
   }
 
   def withoutAliases(`type`: ScType): String = {
-    `type`.removeAliasDefinitions(expandableOnly = true).presentableText
+    `type`.removeAliasDefinitions(expandableOnly = true).originalPresentableText
   }
 }
 

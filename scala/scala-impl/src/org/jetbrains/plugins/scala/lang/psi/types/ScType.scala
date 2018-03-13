@@ -95,9 +95,17 @@ trait ScType extends ProjectContextOwner {
 
   def typeDepth: Int = 1
 
-  def presentableText: String = typeSystem.presentableText(this, withPrefix = true)
+  def presentableText: String = presentableText(TypePresentationTransformer.cleanUp)
 
-  def canonicalText: String = typeSystem.canonicalText(this)
+  def presentableText(transformer: TypePresentationTransformer): String =
+    typeSystem.presentableText(transformer.transform(this))
+  
+  def originalPresentableText: String = presentableText(TypePresentationTransformer.Identity)
+  
+  def canonicalText: String = canonicalText(TypePresentationTransformer.Identity)
+  
+  def canonicalText(transformer: TypePresentationTransformer): String =
+    typeSystem.canonicalText(transformer.transform(this))
 }
 
 object ScType extends recursiveUpdate.Extensions
