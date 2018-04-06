@@ -171,7 +171,7 @@ trait ScalaConformance extends api.Conformance {
 
     trait LiteralTypeWideningVisitor extends ScalaTypeVisitor {
       override def visitLiteralType(lit: ScLiteralType): Unit = {
-        result = if (l eq Singleton) (true, subst) else conformsInner(l, lit.wideType, visited, subst, checkWeak)
+        result = if (l conforms Singleton) (true, subst) else conformsInner(l, lit.wideType, visited, subst, checkWeak)
       }
     }
 
