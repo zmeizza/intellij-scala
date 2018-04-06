@@ -166,4 +166,6 @@ class LiteralTypesHighlightingTest extends LiteralTypesHighlightingTestBase {
   def testWithSpaces(): Unit = doTest()
 
   def testExtendsSingleton(): Unit = doTest()
+
+  def testSome(): Unit = doTest()
 }
