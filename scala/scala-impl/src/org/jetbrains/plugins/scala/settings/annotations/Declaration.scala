@@ -95,8 +95,15 @@ object Declaration {
     }
 
     override def hasAccidentalStructuralType: Boolean = element match {
-      case Typeable(tpe @ ScCompoundType(comps, _, _)) if comps.nonEmpty =>
-        !ScCompoundType(comps)(tpe.projectContext).conforms(tpe)
+      case Typeable(tpe) => tpe match {
+        case ScCompoundType(_, sigs, _) if sigs.isEmpty => false
+        case ScCompoundType(Seq(obj), _, _) 
+          if obj.canonicalText == "_root_.java.lang.Object" => 
+          false
+        case ScCompoundType(comps, _, _) if comps.nonEmpty =>
+          !ScCompoundType(comps)(tpe.projectContext).conforms(tpe)
+        case _ => false
+      }
       case _ => false
     }
   }
