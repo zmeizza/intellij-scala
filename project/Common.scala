@@ -1,5 +1,9 @@
-import sbt._
+import java.lang.management.ManagementFactory
+import com.sun.management.UnixOperatingSystemMXBean
+
+import sbt.{TestResult, _}
 import Keys._
+
 import scala.language.implicitConversions
 import scala.language.postfixOps
 
@@ -66,6 +70,27 @@ object Common {
       // to enable debugging of tests running in external sbt instance
 //      ,"-agentlib:jdwp=transport=dt_socket,server=y,address=5005,suspend=y"
     ),
-    envVars in Test += "NO_FS_ROOTS_ACCESS_CHECK" -> "yes"
+    envVars in Test += "NO_FS_ROOTS_ACCESS_CHECK" -> "yes",
+    testOptions += Tests.Listeners(Seq(OpenFilesListener))
   )
+
+  private object OpenFilesListener extends TestReportListener {
+    private val operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean
+
+    override def startGroup(name: String): Unit = {
+      operatingSystemMXBean match {
+        case x: UnixOperatingSystemMXBean =>
+          val open = x.getOpenFileDescriptorCount
+          val max = x.getMaxFileDescriptorCount
+          println(s"[info] $open of $max files open on $name start")
+        case _ =>
+      }
+    }
+
+    override def testEvent(event: TestEvent): Unit = {}
+
+    override def endGroup(name: String, t: Throwable): Unit = {}
+
+    override def endGroup(name: String, result: TestResult.Value): Unit = {}
+  }
 }
