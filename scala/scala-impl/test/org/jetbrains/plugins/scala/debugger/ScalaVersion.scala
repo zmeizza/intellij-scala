@@ -1,10 +1,14 @@
 package org.jetbrains.plugins.scala.debugger
 
-import scala.collection.mutable.ListBuffer
+import java.lang.management.ManagementFactory
+
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
-import org.jetbrains.plugins.scala.{DependencyManager, TestFixtureProvider}
+import com.sun.management.UnixOperatingSystemMXBean
+import org.jetbrains.plugins.scala.TestFixtureProvider
 import org.jetbrains.plugins.scala.base.libraryLoaders.LibraryLoader
+
+import scala.collection.mutable.ListBuffer
 
 /**
  * @author Nikolay.Tropin
@@ -50,7 +54,19 @@ trait ScalaSdkOwner {
 
   private lazy val myLoaders: ListBuffer[LibraryLoader] = ListBuffer()
 
+  private def printCurrentOpenFileCount(suffix: String): Unit = {
+    ManagementFactory.getOperatingSystemMXBean match {
+      case x: UnixOperatingSystemMXBean =>
+        val open = x.getOpenFileDescriptorCount
+        val max = x.getMaxFileDescriptorCount
+        println(s"[debug open files] $open of $max")
+      case _ =>
+    }
+  }
+
+
   protected def setUpLibraries(): Unit = {
+    printCurrentOpenFileCount("before setup libraries")
     librariesLoaders.foreach { loader =>
       myLoaders += loader
       loader.init
@@ -60,6 +76,8 @@ trait ScalaSdkOwner {
   protected def disposeLibraries(): Unit = {
     myLoaders.foreach(_.clean)
     myLoaders.clear()
+
+    printCurrentOpenFileCount("after disposing libraries")
   }
 
 }
