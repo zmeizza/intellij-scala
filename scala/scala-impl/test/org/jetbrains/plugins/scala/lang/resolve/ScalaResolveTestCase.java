@@ -23,6 +23,7 @@ import org.jetbrains.plugins.scala.base.ScalaLightPlatformCodeInsightTestCaseAda
 import org.jetbrains.plugins.scala.util.TestUtils;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * @author ilyas
@@ -47,14 +48,18 @@ public abstract class ScalaResolveTestCase extends ScalaLightPlatformCodeInsight
       fileName = fileName.substring("JavaFileWithName".length());
     }
     String filePath = folderPath() + File.separator + fileName + extention;
-    File ioFile = new File(filePath);
-    String fileText = FileUtil.loadFile(ioFile, CharsetToolkit.UTF8);
-    fileText = StringUtil.convertLineSeparators(fileText);
-    int offset = fileText.indexOf("<ref>");
-    fileText = fileText.replace("<ref>", "");
-    configureFromFileTextAdapter(ioFile.getName(), fileText);
-    if (offset != -1) {
-      getEditor().getCaretModel().moveToOffset(offset);
+    try {
+      File ioFile = new File(filePath);
+      String fileText = FileUtil.loadFile(ioFile, CharsetToolkit.UTF8);
+      fileText = StringUtil.convertLineSeparators(fileText);
+      int offset = fileText.indexOf("<ref>");
+      fileText = fileText.replace("<ref>", "");
+      configureFromFileTextAdapter(ioFile.getName(), fileText);
+      if (offset != -1) {
+        getEditor().getCaretModel().moveToOffset(offset);
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 }
