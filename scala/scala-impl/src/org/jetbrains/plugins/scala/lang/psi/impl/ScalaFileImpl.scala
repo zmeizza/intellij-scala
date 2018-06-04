@@ -25,7 +25,7 @@ import com.intellij.util.Processor
 import com.intellij.util.indexing.FileBasedIndex
 import org.jetbrains.annotations.Nullable
 import org.jetbrains.plugins.scala.JavaArrayFactoryUtil._
-import org.jetbrains.plugins.scala.caches.CachesUtil
+import org.jetbrains.plugins.scala.caches.DropOn
 import org.jetbrains.plugins.scala.decompiler.{CompiledFileAdjuster, DecompilerUtil}
 import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.TokenSets._
@@ -40,7 +40,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.{FileDeclarationsHolder, ScContr
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiManager.AnyScalaPsiModificationTracker
 import org.jetbrains.plugins.scala.lang.psi.stubs.ScFileStub
 import org.jetbrains.plugins.scala.lang.refactoring.util.ScalaNamesUtil
-import org.jetbrains.plugins.scala.macroAnnotations.{CachedInUserData, ModCount}
+import org.jetbrains.plugins.scala.macroAnnotations.CachedInUserData
 import org.jetbrains.plugins.scala.settings.ScalaProjectSettings
 import org.jetbrains.plugins.scala.util.ScalaUtil
 import org.jetbrains.plugins.scala.worksheet.ammonite.AmmoniteUtil
@@ -181,7 +181,7 @@ class ScalaFileImpl(viewProvider: FileViewProvider, fileType: LanguageFileType =
     false
   }
 
-  @CachedInUserData(this, ModCount.anyScalaPsiModificationCount)
+  @CachedInUserData(this, DropOn.anyScalaPsiChange)
   override def isScriptFile: Boolean = byStubOrPsi(_.isScript)(isScriptFileImpl)
 
   override def isWorksheetFile: Boolean = {
@@ -364,7 +364,7 @@ class ScalaFileImpl(viewProvider: FileViewProvider, fileType: LanguageFileType =
     } else PsiClass.EMPTY_ARRAY
   }
 
-  @CachedInUserData(this, CachesUtil.javaStructureTracker(getProject))
+  @CachedInUserData(this, DropOn.globalStructureChange(getProject))
   protected def isScalaPredefinedClass: Boolean = {
     typeDefinitions.length == 1 && Set("scala", "scala.Predef").contains(typeDefinitions.head.qualifiedName)
   }
