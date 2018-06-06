@@ -61,7 +61,7 @@ class ScalaPsiManager(val project: Project) {
   private val clearCacheOnOutOfBlockChange = new mutable.ArrayBuffer[util.Map[_ <: Any, _ <: Any]]()
 
   val collectImplicitObjectsCache: ConcurrentMap[(ScType, GlobalSearchScope), Seq[ScType]] =
-    ContainerUtil.createConcurrentWeakMap[(ScType, GlobalSearchScope), Seq[ScType]]()
+    ContainerUtil.newConcurrentMap[(ScType, GlobalSearchScope), Seq[ScType]]()
 
   val implicitCollectorCache: ImplicitCollectorCache = new ImplicitCollectorCache(project)
 
